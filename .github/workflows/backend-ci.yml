@@ -1,0 +1,14 @@
+name: backend-ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: backend-ci-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    uses: notivest/.github/.github/workflows/spring-base.yml@main
