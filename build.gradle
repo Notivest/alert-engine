@@ -20,40 +20,39 @@ repositories {
 }
 
 dependencies {
-	implementation 'org.springframework.boot:spring-boot-starter'
-	implementation 'org.jetbrains.kotlin:kotlin-reflect'
-	testImplementation 'org.springframework.boot:spring-boot-starter-test'
-	testImplementation 'org.jetbrains.kotlin:kotlin-test-junit5'
-	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    // Web + JSON + Validación
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'com.fasterxml.jackson.module:jackson-module-kotlin'
 
-    // DB
-    runtimeOnly 'org.postgresql:postgresql:42.7.3'
-
-    testRuntimeOnly 'com.h2database:h2'
-
-
+    // Seguridad (JWT como resource server)
     implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
 
+    // Persistencia
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.flywaydb:flyway-core'                    // dejá que Boot maneje la versión
+    implementation 'org.flywaydb:flyway-database-postgresql'     // idem
+    runtimeOnly  'org.postgresql:postgresql'                     // driver (Boot maneja versión)
+
+    // JSONB helpers (opcional; útil para Map/JsonNode en columnas JSON)
+    implementation 'com.vladmihalcea:hibernate-types-60:2.21.1'
+
+    // Observabilidad (opcional)
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
 
+    // OpenAPI/Swagger UI  (ver nota de seguridad abajo)
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:6.2.10'
+
+    // JSON Schema validation para params por kind
+    implementation 'com.networknt:json-schema-validator:1.5.9'
+
+    // Test
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'
-
-    // flyway migraciones
-    implementation("org.flywaydb:flyway-core")
-    implementation("org.flywaydb:flyway-database-postgresql:10.20.1")
-
-    //OpenAPI
-    implementation "org.springdoc:springdoc-openapi-starter-webmvc-ui:2.7.0"
-
-    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-
-    implementation("com.vladmihalcea:hibernate-types-60:2.21.1")
-
-    testImplementation("org.springframework.boot:spring-boot-starter-test")
-    testImplementation("org.testcontainers:junit-jupiter")
-    testImplementation("org.testcontainers:postgresql")
+    testRuntimeOnly  'com.h2database:h2:2.2.224' // evita warning de Flyway con H2 2.3.x
+    testImplementation 'org.testcontainers:junit-jupiter'
+    testImplementation 'org.testcontainers:postgresql'
 }
 
 kotlin {
