@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PRICE_ABOVE",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["price"],
+  "properties": {
+    "price": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "tolerance": {
+      "type": "number",
+      "minimum": 0
+    }
+  }
+}

@@ -17,12 +17,13 @@ CREATE TABLE alert_rules
     user_id           UUID        NOT NULL,
     symbol            VARCHAR(20) NOT NULL,
     kind              VARCHAR(30) NOT NULL,
-    params            JSONB       NOT NULL,
+    params            JSON       NOT NULL,
     timeframe         VARCHAR(10) NOT NULL,
     status            VARCHAR(15) NOT NULL,
     debounce_secs     BIGINT,
     last_triggered_at TIMESTAMP WITHOUT TIME ZONE,
     updated_at        TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+    created_at        TIMESTAMP WITHOUT TIME ZONE NOT NULL,
     CONSTRAINT pk_alert_rules PRIMARY KEY (id)
 );
 
