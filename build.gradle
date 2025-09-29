@@ -1,67 +1,101 @@
 plugins {
-	id 'org.jetbrains.kotlin.jvm' version '1.9.25'
-	id 'org.jetbrains.kotlin.plugin.spring' version '1.9.25'
-	id 'org.springframework.boot' version '3.4.6'
-	id 'io.spring.dependency-management' version '1.1.7'
+    id 'org.jetbrains.kotlin.jvm' version '1.9.25'
+    id 'org.jetbrains.kotlin.plugin.spring' version '1.9.25'
     id 'org.jetbrains.kotlin.plugin.jpa' version '1.9.25'
+    id 'org.springframework.boot' version '3.4.6'
+    id 'io.spring.dependency-management' version '1.1.7'
+    // opcional (solo si querés metadata para @ConfigurationProperties):
+    // id 'org.jetbrains.kotlin.kapt' version '1.9.25'
 }
 
 group = 'com.notivest'
 version = '0.0.1-SNAPSHOT'
 
 java {
-	toolchain {
-		languageVersion = JavaLanguageVersion.of(21)
-	}
+    toolchain { languageVersion = JavaLanguageVersion.of(21) }
 }
 
 repositories {
-	mavenCentral()
+    mavenCentral()
+}
+
+ext {
+    coroutinesVersion = '1.9.0'
+    mockWebServerVersion = '4.12.0'
+    micrometerVersion = '1.13.4'
+    assertjVersion = '3.26.3'
 }
 
 dependencies {
     // Web + JSON + Validación
-    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-web'         // MVC (controllers)
+    implementation 'org.springframework.boot:spring-boot-starter-webflux'     // WebClient no bloqueante
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'com.fasterxml.jackson.module:jackson-module-kotlin'
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-reactor:${coroutinesVersion}"
 
-    // Seguridad (JWT como resource server)
+    // Seguridad (Resource Server JWT)
     implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
 
     // Persistencia
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-    implementation 'org.flywaydb:flyway-core'                    // dejá que Boot maneje la versión
-    implementation 'org.flywaydb:flyway-database-postgresql'     // idem
-    runtimeOnly  'org.postgresql:postgresql'                     // driver (Boot maneja versión)
+    implementation 'org.flywaydb:flyway-core'
+    implementation 'org.flywaydb:flyway-database-postgresql'
+    runtimeOnly  'org.postgresql:postgresql'
 
-    // JSONB helpers (opcional; útil para Map/JsonNode en columnas JSON)
+    // JSONB helpers (opcional)
     implementation 'com.vladmihalcea:hibernate-types-60:2.21.1'
 
-    // Observabilidad (opcional)
+    // Observabilidad
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
 
-    // OpenAPI/Swagger UI  (ver nota de seguridad abajo)
-    implementation "org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.2"
-    // JSON Schema validation para params por kind
+    // OpenAPI/Swagger
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.2'
+
+    // JSON Schema (si lo usás)
     implementation 'com.networknt:json-schema-validator:1.5.9'
 
-    // Test
-    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    // ------------------- TEST -------------------
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'    // JUnit 5, Mockito, AssertJ
     testImplementation 'org.springframework.security:spring-security-test'
-    testRuntimeOnly  'com.h2database:h2:2.2.224' // evita warning de Flyway con H2 2.3.x
+    testRuntimeOnly  'com.h2database:h2:2.2.224'
+
+    // Mockito Kotlin (para whenever/eq/verify/argumentCaptor/any)
+    testImplementation 'org.mockito.kotlin:mockito-kotlin:5.4.0'
+
+    // MockWebServer
+    testImplementation "com.squareup.okhttp3:mockwebserver:${mockWebServerVersion}"
+
+    // (Opcional) AssertJ explícito
+    testImplementation "org.assertj:assertj-core:${assertjVersion}"
+
+    // (Opcional) Micrometer para SimpleMeterRegistry en tests
+    testImplementation "io.micrometer:micrometer-core:${micrometerVersion}"
+
+    // (Opcional) Testcontainers si corrés integración con Postgres
     testImplementation 'org.testcontainers:junit-jupiter'
     testImplementation 'org.testcontainers:postgresql'
-    testImplementation 'org.mockito.kotlin:mockito-kotlin:5.4.0'
-    testImplementation("org.assertj:assertj-core:3.26.3")
+
+    // (Opcional) Jackson extra en tests
+    testImplementation 'com.fasterxml.jackson.module:jackson-module-kotlin:2.17.+'
+    testImplementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.17.+'
+
+    testImplementation 'io.mockk:mockk:1.13.11'
+
+    testImplementation "org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0"
+
+    // Necesarias para kotlin.test (assertFailsWith, assertEquals, etc.) con JUnit 5
+    testImplementation "org.jetbrains.kotlin:kotlin-test"
+    testImplementation "org.jetbrains.kotlin:kotlin-test-junit5"
 }
 
 kotlin {
-	compilerOptions {
-		freeCompilerArgs.addAll '-Xjsr305=strict'
-	}
+    compilerOptions {
+        freeCompilerArgs.addAll '-Xjsr305=strict'
+    }
 }
 
-tasks.named('test') {
-	useJUnitPlatform()
+tasks.test {
+    useJUnitPlatform()
 }
