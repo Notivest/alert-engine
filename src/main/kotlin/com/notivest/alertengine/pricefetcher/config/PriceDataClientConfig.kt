@@ -4,6 +4,10 @@ import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.notivest.alertengine.pricefetcher.client.PriceDataClient
+import com.notivest.alertengine.pricefetcher.client.PriceDataClientWeb
+import com.notivest.alertengine.pricefetcher.tokenprovider.TokenPolicy
+import io.micrometer.core.instrument.MeterRegistry
 import io.netty.channel.ChannelOption
 import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.context.annotation.Bean
@@ -64,6 +68,21 @@ class PriceDataClientConfig {
             .filter(ServletBearerExchangeFilterFunction())
             .build()
     }
+
+    @Bean
+    fun priceDataClient(
+        priceDataWebClient: WebClient,
+        props: PriceDataClientProperties,
+        tokenPolicy: TokenPolicy,
+        meterRegistry: MeterRegistry,
+        mapper: ObjectMapper
+    ): PriceDataClient = PriceDataClientWeb(
+        client = priceDataWebClient,
+        props = props,
+        tokenPolicy = tokenPolicy,
+        meterRegistry = meterRegistry,
+        mapper = mapper
+    )
 
     @Bean
     fun objectMapper(): ObjectMapper =

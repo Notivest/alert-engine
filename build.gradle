@@ -88,6 +88,8 @@ dependencies {
     // Necesarias para kotlin.test (assertFailsWith, assertEquals, etc.) con JUnit 5
     testImplementation "org.jetbrains.kotlin:kotlin-test"
     testImplementation "org.jetbrains.kotlin:kotlin-test-junit5"
+
+    testImplementation("io.github.cdimascio:dotenv-kotlin:6.4.1")
 }
 
 kotlin {
@@ -96,6 +98,8 @@ kotlin {
     }
 }
 
-tasks.test {
-    useJUnitPlatform()
+test {
+    useJUnitPlatform {
+        excludeTags 'integration'
+    }
 }
