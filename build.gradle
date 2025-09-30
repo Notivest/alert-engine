@@ -99,7 +99,5 @@ kotlin {
 }
 
 test {
-    useJUnitPlatform {
-        excludeTags 'integration'
-    }
+    useJUnitPlatform()
 }
