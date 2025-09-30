@@ -14,4 +14,6 @@ interface AlertRuleRepository : JpaRepository<AlertRule, UUID>, JpaSpecification
     fun findAllByUserIdAndStatus(userId: UUID, status: RuleStatus, pageable: Pageable): Page<AlertRule>
 
     fun findByIdAndUserId(id: UUID, userId: UUID): Optional<AlertRule>
+
+    fun findAllByStatus(status: RuleStatus): List<AlertRule>
 }

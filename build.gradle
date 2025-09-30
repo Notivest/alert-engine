@@ -32,6 +32,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-webflux'     // WebClient no bloqueante
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'com.fasterxml.jackson.module:jackson-module-kotlin'
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:${coroutinesVersion}"
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-reactor:${coroutinesVersion}"
 
     // Seguridad (Resource Server JWT)
