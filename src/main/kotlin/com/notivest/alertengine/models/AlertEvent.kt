@@ -1,7 +1,9 @@
 package com.notivest.alertengine.models
 
+import com.notivest.alertengine.models.enums.SeverityAlert
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
+import jakarta.persistence.Enumerated
 import jakarta.persistence.FetchType
 import jakarta.persistence.GeneratedValue
 import jakarta.persistence.Id
@@ -16,6 +18,7 @@ import org.hibernate.annotations.UuidGenerator
 import org.hibernate.type.SqlTypes
 import java.time.OffsetDateTime
 import java.util.UUID
+import javax.print.attribute.standard.Severity
 
 
 @Entity
@@ -47,6 +50,10 @@ class AlertEvent(
 
     @Column(nullable = false, length = 120)
     var fingerprint: String,
+
+    @Enumerated(jakarta.persistence.EnumType.STRING)
+    @Column(nullable = false)
+    var severity: SeverityAlert = SeverityAlert.INFO,
 
     @Column(nullable = false)
     var sent : Boolean = false,
