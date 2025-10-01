@@ -1,8 +1,8 @@
 package com.notivest.alertengine.service.interfaces
 
-import com.notivest.alertengine.dto.alertrule.request.CreateAlertRuleRequest
-import com.notivest.alertengine.dto.alertrule.request.GetAlertQuery
-import com.notivest.alertengine.dto.alertrule.request.UpdateAlertRuleRequest
+import com.notivest.alertengine.controllers.dto.alertrule.request.CreateAlertRuleRequest
+import com.notivest.alertengine.controllers.dto.alertrule.request.GetAlertQuery
+import com.notivest.alertengine.controllers.dto.alertrule.request.UpdateAlertRuleRequest
 import com.notivest.alertengine.models.AlertRule
 import com.notivest.alertengine.models.enums.RuleStatus
 import org.springframework.data.domain.Page

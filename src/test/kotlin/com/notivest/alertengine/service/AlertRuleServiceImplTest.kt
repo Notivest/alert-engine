@@ -1,8 +1,8 @@
 package com.notivest.alertengine.service
 
-import com.notivest.alertengine.dto.alertrule.request.CreateAlertRuleRequest
-import com.notivest.alertengine.dto.alertrule.request.GetAlertQuery
-import com.notivest.alertengine.dto.alertrule.request.UpdateAlertRuleRequest
+import com.notivest.alertengine.controllers.dto.alertrule.request.CreateAlertRuleRequest
+import com.notivest.alertengine.controllers.dto.alertrule.request.GetAlertQuery
+import com.notivest.alertengine.controllers.dto.alertrule.request.UpdateAlertRuleRequest
 import com.notivest.alertengine.exception.ForbiddenOperationException
 import com.notivest.alertengine.exception.ResourceNotFoundException
 import com.notivest.alertengine.models.AlertRule

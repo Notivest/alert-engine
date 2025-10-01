@@ -1,4 +1,4 @@
-package com.notivest.alertengine.dto.alertrule.response
+package com.notivest.alertengine.controllers.dto.alertrule.response
 
 import com.notivest.alertengine.models.enums.AlertKind
 import com.notivest.alertengine.models.enums.RuleStatus

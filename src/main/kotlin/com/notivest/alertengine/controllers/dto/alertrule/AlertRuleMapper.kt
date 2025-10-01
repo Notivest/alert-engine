@@ -1,6 +1,6 @@
-package com.notivest.alertengine.dto.alertrule
+package com.notivest.alertengine.controllers.dto.alertrule
 
-import com.notivest.alertengine.dto.alertrule.response.AlertRuleResponse
+import com.notivest.alertengine.controllers.dto.alertrule.response.AlertRuleResponse
 import com.notivest.alertengine.models.AlertRule
 
 fun AlertRule.toResponse() = AlertRuleResponse(
