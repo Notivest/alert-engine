@@ -111,6 +111,24 @@ class PriceDataClientWeb(
         return ascNoDup
     }
 
+    override suspend fun addToWatchlist(symbol: String, enabled: Boolean, priority: Int?) {
+        val token = tokenPolicy.resolveToken()
+        val body = mapOf("symbol" to symbol, "enabled" to enabled, "priority" to priority)
+        runCatching {
+            client.post().uri("/watchlist")
+                .headers { if (!token.isNullOrBlank()) it.setBearerAuth(token) }
+                .bodyValue(body)
+                .retrieve()
+                .toBodilessEntity()
+                .awaitSingle()
+        }.onFailure { ex ->
+            val wcre = ex as? WebClientResponseException
+            val alreadyExists =
+                wcre?.statusCode?.value() == 400 && wcre.responseBodyAsString.contains("exists", ignoreCase = true)
+            if (!alreadyExists) throw ex // re-lanzá solo si no es “ya existe”
+        }
+    }
+
     // ---------------- Infra común ----------------
 
     private suspend inline fun <reified T> request(

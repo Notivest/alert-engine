@@ -14,4 +14,7 @@ interface PriceDataClient {
         to: Instant? = null,
         limit: Int? = null
     ): List<CandleDTO>
+
+    suspend fun addToWatchlist(symbol: String, enabled: Boolean = true, priority: Int? = null)
+
 }

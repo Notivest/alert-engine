@@ -10,6 +10,7 @@ import com.notivest.alertengine.models.enums.AlertKind
 import com.notivest.alertengine.models.enums.RuleStatus
 import com.notivest.alertengine.models.enums.SeverityAlert
 import com.notivest.alertengine.models.enums.Timeframe
+import com.notivest.alertengine.pricefetcher.listener.WatchlistAdd
 import com.notivest.alertengine.repositories.AlertRuleRepository
 import com.notivest.alertengine.service.implementations.AlertRuleServiceImpl
 import com.notivest.alertengine.validation.AlertParamsValidator
@@ -22,6 +23,7 @@ import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.jpa.domain.Specification
@@ -33,17 +35,23 @@ class AlertRuleServiceImplTest {
 
     private val repository: AlertRuleRepository = mock()
     private val validator: AlertParamsValidator = mock()
-    private val service = AlertRuleServiceImpl(repository, validator)
+    private val eventPublisher: ApplicationEventPublisher = mock()
+
+    private val service = AlertRuleServiceImpl(
+        repository = repository,
+        validator = validator,
+        eventPublisher = eventPublisher
+    )
 
     @Test
-    fun `create - valida params y guarda con defaults`() {
+    fun `create - valida params, guarda con defaults y publica evento`() {
         val userId = UUID.randomUUID()
         val req = CreateAlertRuleRequest(
             symbol = "AAPL",
             kind = AlertKind.PRICE_THRESHOLD,
             params = mapOf("price" to 100.0),
             timeframe = Timeframe.D1,
-            status = null,                      // default ACTIVE
+            status = null, // default ACTIVE
             notifyMinSeverity = SeverityAlert.WARNING,
             debounceSeconds = 30
         )
@@ -61,13 +69,16 @@ class AlertRuleServiceImplTest {
             assertThat(ent.symbol).isEqualTo("AAPL")
             assertThat(ent.kind).isEqualTo(AlertKind.PRICE_THRESHOLD)
             assertThat(ent.timeframe).isEqualTo(Timeframe.D1)
-            assertThat(ent.status).isEqualTo(RuleStatus.ACTIVE) // default aplicado
+            assertThat(ent.status).isEqualTo(RuleStatus.ACTIVE)
             assertThat(ent.notifyMinSeverity).isEqualTo(SeverityAlert.WARNING)
             assertThat(ent.debounceTime).isEqualTo(Duration.ofSeconds(30))
         }
 
-        // devuelve lo que persiste
+        // Devuelve lo que persiste
         assertThat(saved.symbol).isEqualTo("AAPL")
+
+        // Publica el evento para añadir a la watchlist
+        verify(eventPublisher).publishEvent(WatchlistAdd("AAPL"))
     }
 
     @Test
@@ -99,7 +110,6 @@ class AlertRuleServiceImplTest {
         assertThat(existing.params).isEqualTo(mapOf("price" to 110.0))
         assertThat(existing.status).isEqualTo(RuleStatus.PAUSED)
         assertThat(existing.debounceTime).isEqualTo(Duration.ofSeconds(90))
-        // el servicio devuelve la misma instancia modificada
         assertThat(updated).isSameAs(existing)
     }
 

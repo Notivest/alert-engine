@@ -8,10 +8,15 @@ import com.notivest.alertengine.exception.ResourceNotFoundException
 import com.notivest.alertengine.models.AlertRule
 import com.notivest.alertengine.models.enums.RuleStatus
 import com.notivest.alertengine.models.enums.SeverityAlert
+import com.notivest.alertengine.pricefetcher.client.PriceDataClient
+import com.notivest.alertengine.pricefetcher.listener.WatchlistAdd
 import com.notivest.alertengine.repositories.AlertRuleRepository
 import com.notivest.alertengine.repositories.spec.AlertRuleSpecs
+import com.notivest.alertengine.scheduler.EventSink
 import com.notivest.alertengine.service.interfaces.AlertRuleService
 import com.notivest.alertengine.validation.AlertParamsValidator
+import org.slf4j.LoggerFactory
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.domain.Specification
@@ -24,8 +29,12 @@ import org.springframework.transaction.annotation.Transactional
 @Service
 class AlertRuleServiceImpl(
     private val repository: AlertRuleRepository,
-    private val validator: AlertParamsValidator
+    private val validator: AlertParamsValidator,
+    private val eventPublisher: ApplicationEventPublisher
 ) : AlertRuleService {
+
+    private val logger = LoggerFactory.getLogger(AlertRuleServiceImpl::class.java)
+
     override fun list(
         userId: UUID,
         query: GetAlertQuery,
@@ -40,12 +49,9 @@ class AlertRuleServiceImpl(
         return repository.findAll(spec, pageable)
     }
 
-    override fun create(
-        userId: UUID,
-        command: CreateAlertRuleRequest
-    ): AlertRule {
+    @Transactional
+    override fun create(userId: UUID, command: CreateAlertRuleRequest): AlertRule {
         validator.validate(command.kind, command.params)
-
         val entity = AlertRule(
             userId = userId,
             symbol = command.symbol,
@@ -56,8 +62,11 @@ class AlertRuleServiceImpl(
             notifyMinSeverity = command.notifyMinSeverity ?: SeverityAlert.INFO,
             debounceTime = command.debounceSeconds?.let { Duration.ofSeconds(it) }
         )
+        val saved = repository.saveAndFlush(entity)
 
-        return repository.saveAndFlush(entity)
+        eventPublisher.publishEvent(WatchlistAdd(saved.symbol))
+
+        return saved
     }
 
     override fun update(
