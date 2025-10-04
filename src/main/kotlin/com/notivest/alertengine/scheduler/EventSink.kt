@@ -50,9 +50,18 @@ class EventSink(
 
         when (txResult) {
             is EventSinkResult.Persisted -> {
-                val sent = sendNotification(txResult.event)
-                if (sent) markSent(txResult.event)
-                if (!sent) txResult.copy(notificationSent = false) else txResult
+                val shouldNotify = txResult.event.severity.ordinal >= rule.notifyMinSeverity.ordinal
+                if (!shouldNotify) {
+                    txResult.copy(notificationSent = false)
+                } else {
+                    val sent = sendNotification(txResult.event)
+                    if (sent) {
+                        markSent(txResult.event)
+                        txResult.copy(notificationSent = true)
+                    } else {
+                        txResult.copy(notificationSent = false)
+                    }
+                }
             }
             else -> txResult
         }
@@ -75,7 +84,7 @@ class EventSink(
                     triggeredAt = triggeredAt,
                     payload = payload,
                     fingerprint = result.fingerprint,
-                    severity = result.severity.toSeverityAlert(),
+                    severity = result.severity,
                     sent = false
                 )
                 val saved = alertEventRepository.save(event)
@@ -109,13 +118,6 @@ class EventSink(
     // utilidades cortas
     private fun Any?.toMap(objectMapper: ObjectMapper): Map<String, Any> =
         this?.let { objectMapper.convertValue(it, mapType) } ?: emptyMap()
-
-    private fun Any?.toSeverityAlert(): com.notivest.alertengine.models.enums.SeverityAlert =
-        when (this?.toString()) {
-            "CRITICAL" -> com.notivest.alertengine.models.enums.SeverityAlert.CRITICAL
-            "WARNING"  -> com.notivest.alertengine.models.enums.SeverityAlert.WARNING
-            else       -> com.notivest.alertengine.models.enums.SeverityAlert.INFO
-        }
 
     companion object {
         private val mapType = object : TypeReference<Map<String, Any>>() {}

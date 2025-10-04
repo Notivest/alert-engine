@@ -2,6 +2,7 @@ package com.notivest.alertengine.controllers.dto.alertrule.request
 
 import com.notivest.alertengine.models.enums.AlertKind
 import com.notivest.alertengine.models.enums.RuleStatus
+import com.notivest.alertengine.models.enums.SeverityAlert
 import com.notivest.alertengine.models.enums.Timeframe
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.NotNull
@@ -28,6 +29,8 @@ data class CreateAlertRuleRequest (
 
     // opcional; si viene null, el service pone ACTIVE
     val status: RuleStatus? = null,
+
+    val notifyMinSeverity: SeverityAlert? = null,
 
     @field:PositiveOrZero
     val debounceSeconds: Long? = null

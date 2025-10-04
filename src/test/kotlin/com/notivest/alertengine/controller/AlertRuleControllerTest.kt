@@ -52,11 +52,11 @@ class AlertRuleControllerTest {
             AlertRule(
                 userId = userId,
                 symbol = "AAPL",
-                kind = AlertKind.PRICE_ABOVE,
+                kind = AlertKind.PRICE_THRESHOLD,
                 params = mapOf("price" to 100.0),
                 timeframe = Timeframe.D1
             ),
-            AlertRule(userId = userId, symbol = "AAPL", kind = AlertKind.PRICE_BELOW, params = mapOf("price" to 90.0), timeframe = Timeframe.D1)
+            AlertRule(userId = userId, symbol = "AAPL", kind = AlertKind.PRICE_THRESHOLD, params = mapOf("price" to 90.0), timeframe = Timeframe.D1)
         )
         whenever(service.list(eq(userId), any<GetAlertQuery>(), eq(pageable)))
             .thenReturn(PageImpl(rules.map { it }, pageable, 2))
@@ -81,7 +81,7 @@ class AlertRuleControllerTest {
 
         val req = CreateAlertRuleRequest(
             symbol = "AAPL",
-            kind = AlertKind.PRICE_ABOVE,
+            kind = AlertKind.PRICE_THRESHOLD,
             params = mapOf("price" to 100.0),
             timeframe = Timeframe.D1,
             status = null,
@@ -126,7 +126,7 @@ class AlertRuleControllerTest {
             id = id,
             userId = userId,
             symbol = "AAPL",
-            kind = AlertKind.PRICE_BELOW,
+            kind = AlertKind.PRICE_THRESHOLD,
             params = req.params!!,
             timeframe = Timeframe.D1,
             status = RuleStatus.PAUSED

@@ -7,6 +7,7 @@ import com.notivest.alertengine.exception.ForbiddenOperationException
 import com.notivest.alertengine.exception.ResourceNotFoundException
 import com.notivest.alertengine.models.AlertRule
 import com.notivest.alertengine.models.enums.RuleStatus
+import com.notivest.alertengine.models.enums.SeverityAlert
 import com.notivest.alertengine.repositories.AlertRuleRepository
 import com.notivest.alertengine.repositories.spec.AlertRuleSpecs
 import com.notivest.alertengine.service.interfaces.AlertRuleService
@@ -52,6 +53,7 @@ class AlertRuleServiceImpl(
             params = command.params,
             timeframe = command.timeframe,
             status = command.status ?: RuleStatus.ACTIVE,
+            notifyMinSeverity = command.notifyMinSeverity ?: SeverityAlert.INFO,
             debounceTime = command.debounceSeconds?.let { Duration.ofSeconds(it) }
         )
 
@@ -76,6 +78,8 @@ class AlertRuleServiceImpl(
         command.debounceSeconds?.let { secs ->
             rule.debounceTime = Duration.ofSeconds(secs)
         }
+
+        command.notifyMinSeverity?.let { rule.notifyMinSeverity = it }
 
         return repository.saveAndFlush(rule)
     }

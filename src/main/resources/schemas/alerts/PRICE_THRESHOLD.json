@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://notivest.io/schemas/price_threshold.json",
+  "title": "PRICE_THRESHOLD",
+  "description": "Triggers when the latest price satisfies the given operator against the absolute threshold value.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["operator", "value"],
+  "properties": {
+    "operator": {
+      "type": "string",
+      "enum": ["GTE", "LTE", "GT", "LT"],
+      "description": "Comparison operator: GTE (>=), LTE (<=), GT (>), LT (<)."
+    },
+    "value": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "description": "Absolute price threshold."
+    }
+  },
+  "examples": [
+    { "operator": "GTE", "value": 123.45 },
+    { "operator": "LT",  "value": 0.5 }
+  ]
+}

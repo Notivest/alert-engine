@@ -13,6 +13,7 @@ data class AlertRuleResponse (
     val params: Map<String, Any>,
     val timeframe: String,
     val status: String,
+    val notifyMinSeverity: String,
     val debounceSeconds: Long?,
     val createdAt: String?,
     val updatedAt: String?

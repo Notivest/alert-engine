@@ -16,7 +16,7 @@ class AlertParamsValidatorTest {
     fun `PRICE_ABOVE - acepta payload válido`() {
         val params = mapOf("price" to 100.0, "tolerance" to 0.5)
         assertDoesNotThrow {
-            validator.validate(AlertKind.PRICE_ABOVE, params)
+            validator.validate(AlertKind.PRICE_THRESHOLD, params)
         }
     }
 
@@ -24,7 +24,7 @@ class AlertParamsValidatorTest {
     fun `PRICE_ABOVE - rechaza price negativo`() {
         val params = mapOf("price" to -1)
         val ex = assertThrows(InvalidParamsException::class.java) {
-            validator.validate(AlertKind.PRICE_ABOVE, params)
+            validator.validate(AlertKind.PRICE_THRESHOLD, params)
         }
         assertTrue(ex.message!!.contains("price"), "El mensaje debería mencionar 'price'")
     }
@@ -33,7 +33,7 @@ class AlertParamsValidatorTest {
     fun `PRICE_ABOVE - rechaza propiedades adicionales`() {
         val params = mapOf("price" to 100.0, "foo" to "bar")
         val ex = assertThrows(InvalidParamsException::class.java) {
-            validator.validate(AlertKind.PRICE_ABOVE, params)
+            validator.validate(AlertKind.PRICE_THRESHOLD, params)
         }
         // networknt suele mencionar 'additionalProperties' o el nombre del campo extra
         assertTrue(ex.message!!.contains("additional"), "Mensaje debería mencionar additionalProperties")
@@ -43,7 +43,7 @@ class AlertParamsValidatorTest {
     fun `PRICE_ABOVE - rechaza falta de price`() {
         val params = emptyMap<String, Any>()
         val ex = assertThrows(InvalidParamsException::class.java) {
-            validator.validate(AlertKind.PRICE_ABOVE, params)
+            validator.validate(AlertKind.PRICE_THRESHOLD, params)
         }
         assertTrue(ex.message!!.contains("required"), "Mensaje debería mencionar campo requerido")
     }
@@ -52,7 +52,7 @@ class AlertParamsValidatorTest {
     fun `PRICE_BELOW - acepta payload válido`() {
         val params = mapOf("price" to 50.0)
         assertDoesNotThrow {
-            validator.validate(AlertKind.PRICE_BELOW, params)
+            validator.validate(AlertKind.PRICE_THRESHOLD, params)
         }
     }
 
@@ -60,7 +60,7 @@ class AlertParamsValidatorTest {
     fun `PRICE_BELOW - rechaza tipo inválido`() {
         val params = mapOf("price" to "100") // string en vez de number
         val ex = assertThrows(InvalidParamsException::class.java) {
-            validator.validate(AlertKind.PRICE_BELOW, params)
+            validator.validate(AlertKind.PRICE_THRESHOLD, params)
         }
         assertTrue(ex.message!!.contains("string found, number expected"), "Mensaje debería mencionar error de tipo")
     }

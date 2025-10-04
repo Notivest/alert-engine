@@ -3,6 +3,7 @@ package com.notivest.alertengine.models
 import com.notivest.alertengine.models.converters.DurationSecondsConverter
 import com.notivest.alertengine.models.enums.AlertKind
 import com.notivest.alertengine.models.enums.RuleStatus
+import com.notivest.alertengine.models.enums.SeverityAlert
 import com.notivest.alertengine.models.enums.Timeframe
 import jakarta.persistence.Column
 import jakarta.persistence.Convert
@@ -64,6 +65,11 @@ class AlertRule(
     @Column(name = "last_triggered_at")
     var lastTriggeredAt : OffsetDateTime? = null,
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "notify_min_severity", nullable = false, length = 10)
+    var notifyMinSeverity: SeverityAlert = SeverityAlert.INFO,
+
+
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     var updatedAt: OffsetDateTime? = null,
@@ -72,7 +78,7 @@ class AlertRule(
     @Column(name = "created_at", nullable = false, updatable = false)
     var createdAt: OffsetDateTime? = null,
 
-) {
+    ) {
 
     override fun equals(other: Any?) = this === other || (other is AlertRule && this.id == other.id)
 

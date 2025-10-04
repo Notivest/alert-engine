@@ -36,7 +36,7 @@ class AlertEventRepositoryTest {
             AlertRule(
                 userId = UUID.randomUUID(),
                 symbol = "AAPL",
-                kind = AlertKind.PRICE_ABOVE,
+                kind = AlertKind.PRICE_THRESHOLD,
                 params = mapOf("price" to 200.0),
                 timeframe = Timeframe.D1,
                 status = RuleStatus.ACTIVE

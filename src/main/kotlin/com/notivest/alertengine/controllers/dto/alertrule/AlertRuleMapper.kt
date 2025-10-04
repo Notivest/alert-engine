@@ -10,6 +10,7 @@ fun AlertRule.toResponse() = AlertRuleResponse(
     params = this.params,
     timeframe = this.timeframe.name,
     status = this.status.name,
+    notifyMinSeverity = this.notifyMinSeverity.name,
     debounceSeconds = this.debounceTime?.seconds,
     createdAt = this.createdAt?.toString(),
     updatedAt = this.updatedAt?.toString()

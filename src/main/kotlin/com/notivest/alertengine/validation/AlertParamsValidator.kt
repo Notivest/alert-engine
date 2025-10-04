@@ -15,8 +15,7 @@ class AlertParamsValidator(private val mapper: ObjectMapper) {
     private val factory = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V202012)
 
     private val schemas: Map<AlertKind, JsonSchema> = mapOf(
-        AlertKind.PRICE_ABOVE to load("schemas/alerts/PRICE_ABOVE.json"),
-        AlertKind.PRICE_BELOW to load("schemas/alerts/PRICE_BELOW.json")
+        AlertKind.PRICE_THRESHOLD to load("schemas/alerts/PRICE_THRESHOLD.json"),
     )
 
     private fun load(path: String): JsonSchema {

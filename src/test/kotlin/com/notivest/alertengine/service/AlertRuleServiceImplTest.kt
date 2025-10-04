@@ -8,6 +8,7 @@ import com.notivest.alertengine.exception.ResourceNotFoundException
 import com.notivest.alertengine.models.AlertRule
 import com.notivest.alertengine.models.enums.AlertKind
 import com.notivest.alertengine.models.enums.RuleStatus
+import com.notivest.alertengine.models.enums.SeverityAlert
 import com.notivest.alertengine.models.enums.Timeframe
 import com.notivest.alertengine.repositories.AlertRuleRepository
 import com.notivest.alertengine.service.implementations.AlertRuleServiceImpl
@@ -39,10 +40,11 @@ class AlertRuleServiceImplTest {
         val userId = UUID.randomUUID()
         val req = CreateAlertRuleRequest(
             symbol = "AAPL",
-            kind = AlertKind.PRICE_ABOVE,
+            kind = AlertKind.PRICE_THRESHOLD,
             params = mapOf("price" to 100.0),
             timeframe = Timeframe.D1,
             status = null,                      // default ACTIVE
+            notifyMinSeverity = SeverityAlert.WARNING,
             debounceSeconds = 30
         )
 
@@ -57,9 +59,10 @@ class AlertRuleServiceImplTest {
             val ent = firstValue
             assertThat(ent.userId).isEqualTo(userId)
             assertThat(ent.symbol).isEqualTo("AAPL")
-            assertThat(ent.kind).isEqualTo(AlertKind.PRICE_ABOVE)
+            assertThat(ent.kind).isEqualTo(AlertKind.PRICE_THRESHOLD)
             assertThat(ent.timeframe).isEqualTo(Timeframe.D1)
             assertThat(ent.status).isEqualTo(RuleStatus.ACTIVE) // default aplicado
+            assertThat(ent.notifyMinSeverity).isEqualTo(SeverityAlert.WARNING)
             assertThat(ent.debounceTime).isEqualTo(Duration.ofSeconds(30))
         }
 
@@ -75,7 +78,7 @@ class AlertRuleServiceImplTest {
             id = id,
             userId = userId,
             symbol = "AAPL",
-            kind = AlertKind.PRICE_BELOW,
+            kind = AlertKind.PRICE_THRESHOLD,
             params = mapOf("price" to 120.0),
             timeframe = Timeframe.H1,
             status = RuleStatus.ACTIVE
@@ -106,7 +109,7 @@ class AlertRuleServiceImplTest {
         val id = UUID.randomUUID()
         val rule = AlertRule(
             id = id, userId = userId, symbol = "AAPL",
-            kind = AlertKind.PRICE_ABOVE, params = mapOf("price" to 100.0),
+            kind = AlertKind.PRICE_THRESHOLD, params = mapOf("price" to 100.0),
             timeframe = Timeframe.D1, status = RuleStatus.ACTIVE
         )
         whenever(repository.findById(id)).thenReturn(Optional.of(rule))
@@ -135,7 +138,7 @@ class AlertRuleServiceImplTest {
         val id = UUID.randomUUID()
         val rule = AlertRule(
             id = id, userId = owner, symbol = "AAPL",
-            kind = AlertKind.PRICE_ABOVE, params = emptyMap(),
+            kind = AlertKind.PRICE_THRESHOLD, params = emptyMap(),
             timeframe = Timeframe.D1, status = RuleStatus.ACTIVE
         )
         whenever(repository.findById(id)).thenReturn(Optional.of(rule))
@@ -156,8 +159,8 @@ class AlertRuleServiceImplTest {
             timeframe = null,
         )
         val data = listOf(
-            AlertRule(userId = userId, symbol = "AAPL", kind = AlertKind.PRICE_ABOVE, params = emptyMap(), timeframe = Timeframe.D1),
-            AlertRule(userId = userId, symbol = "AAPL", kind = AlertKind.PRICE_BELOW, params = emptyMap(), timeframe = Timeframe.D1)
+            AlertRule(userId = userId, symbol = "AAPL", kind = AlertKind.PRICE_THRESHOLD, params = emptyMap(), timeframe = Timeframe.D1),
+            AlertRule(userId = userId, symbol = "AAPL", kind = AlertKind.PRICE_THRESHOLD, params = emptyMap(), timeframe = Timeframe.D1)
         )
         whenever(repository.findAll(any<Specification<AlertRule>>(), eq(pageable)))
             .thenReturn(PageImpl(data, pageable, data.size.toLong()))

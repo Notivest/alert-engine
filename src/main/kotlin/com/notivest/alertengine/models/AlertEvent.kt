@@ -18,8 +18,6 @@ import org.hibernate.annotations.UuidGenerator
 import org.hibernate.type.SqlTypes
 import java.time.OffsetDateTime
 import java.util.UUID
-import javax.print.attribute.standard.Severity
-
 
 @Entity
 @Table(

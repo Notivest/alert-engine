@@ -1,6 +1,7 @@
 // src/main/kotlin/com/notivest/alertengine/ruleEvaluators/evaluators/PriceThreshold.kt
 package com.notivest.alertengine.ruleEvaluators.evaluators
 
+import com.fasterxml.jackson.databind.node.JsonNodeFactory
 import com.notivest.alertengine.models.AlertRule
 import com.notivest.alertengine.models.enums.AlertKind
 import com.notivest.alertengine.models.enums.SeverityAlert
@@ -11,20 +12,17 @@ import com.notivest.alertengine.ruleEvaluators.data.RuleEvaluationContext
 import com.notivest.alertengine.ruleEvaluators.data.RuleEvaluationResult
 import com.notivest.alertengine.ruleEvaluators.evaluators.priceThreshold.Operator
 import com.notivest.alertengine.ruleEvaluators.evaluators.priceThreshold.PriceThresholdParams
+import org.springframework.stereotype.Component
 
 import kotlin.reflect.KClass
 import java.math.BigDecimal
+import java.math.MathContext
 import java.security.MessageDigest
 import java.time.Duration
 import java.time.Instant
 import java.time.format.DateTimeFormatter
 
-/**
- * Evaluador puro y thread-safe para PRICE_THRESHOLD.
- * - Sin I/O, sólo cálculo en memoria
- * - Usa la última barra válida del timeframe
- * - Fingerprint estable por barra/params
- */
+@Component
 class PriceThreshold : RuleEvaluator<PriceThresholdParams> {
 
     override fun getKind(): AlertKind = AlertKind.PRICE_THRESHOLD
@@ -42,10 +40,10 @@ class PriceThreshold : RuleEvaluator<PriceThresholdParams> {
             ?: return noTrigger(rule, null, params)
 
         val barTs: Instant = last.openTime
-        val close: Double? = last.close
+        val close: Double = last.close
 
         // 2) Precio válido (no nulo, no NaN) y barra no "stale"
-        if (close == null || close.isNaN() || isStale(barTs, ctx.evaluatedAt, rule.timeframe)) {
+        if (close.isNaN() || isStale(barTs, ctx.evaluatedAt, rule.timeframe)) {
             return noTrigger(rule, barTs, params)
         }
 
@@ -61,15 +59,17 @@ class PriceThreshold : RuleEvaluator<PriceThresholdParams> {
         }
 
         // 4) Payload y fingerprint por barra
-        val payload = mapOf(
-            "lastPrice" to lastBD,
-            "threshold" to thr,
-            "operator"  to params.operator.name,
-            "delta"     to lastBD.subtract(thr),
-            "symbol"    to rule.symbol,
-            "timeframe" to rule.timeframe.name,
-            "asOf"      to DateTimeFormatter.ISO_INSTANT.format(barTs)
-        )
+        val payload = JsonNodeFactory.instance.objectNode().apply {
+            put("lastPrice", lastBD)
+            put("threshold", thr)
+            put("operator", params.operator.name)
+            put("delta", lastBD.subtract(thr))
+            put("symbol", rule.symbol)
+            put("timeframe", rule.timeframe.name)
+            put("asOf", DateTimeFormatter.ISO_INSTANT.format(barTs))
+        }
+
+        val severity = if (triggered) severityFromOvershoot(lastBD, thr) else SeverityAlert.INFO
 
         val fingerprint = fingerprint(
             kind = getKind().name,
@@ -84,7 +84,7 @@ class PriceThreshold : RuleEvaluator<PriceThresholdParams> {
             triggered = triggered,
             payload = payload,
             fingerprint = fingerprint,
-            severity = rule.severity ?: SeverityAlert.INFO
+            severity = severity
         )
     }
 
@@ -95,15 +95,15 @@ class PriceThreshold : RuleEvaluator<PriceThresholdParams> {
         barTs: Instant?,
         params: PriceThresholdParams
     ): RuleEvaluationResult {
-        val payload = mapOf(
-            "lastPrice" to null,
-            "threshold" to params.value,
-            "operator"  to params.operator.name,
-            "delta"     to null,
-            "symbol"    to rule.symbol,
-            "timeframe" to rule.timeframe.name,
-            "asOf"      to barTs?.let { DateTimeFormatter.ISO_INSTANT.format(it) }
-        )
+        val payload = JsonNodeFactory.instance.objectNode().apply {
+            putNull("lastPrice")
+            put("threshold", params.value)
+            put("operator", params.operator.name)
+            putNull("delta")
+            put("symbol", rule.symbol)
+            put("timeframe", rule.timeframe.name)
+            barTs?.let { put("asOf", DateTimeFormatter.ISO_INSTANT.format(it)) } ?: putNull("asOf")
+        }
 
         val fp = barTs?.let {
             fingerprint(
@@ -127,8 +127,24 @@ class PriceThreshold : RuleEvaluator<PriceThresholdParams> {
             triggered = false,
             payload = payload,
             fingerprint = fp,
-            severity = rule.severity ?: Severity.INFO
+            severity = SeverityAlert.INFO
         )
+    }
+
+    private fun severityFromOvershoot(lastPrice: BigDecimal, threshold: BigDecimal): SeverityAlert {
+        val diff = lastPrice.subtract(threshold).abs()
+        val basis = if (threshold.compareTo(BigDecimal.ZERO) == 0) {
+            lastPrice.abs().max(BigDecimal.ONE)
+        } else {
+            threshold.abs()
+        }
+        val percent = diff.divide(basis, MathContext.DECIMAL64)
+
+        return when {
+            percent >= CRITICAL_THRESHOLD -> SeverityAlert.CRITICAL
+            percent >= WARNING_THRESHOLD -> SeverityAlert.WARNING
+            else -> SeverityAlert.INFO
+        }
     }
 
     private fun isStale(barTs: Instant, now: Instant, tf: Timeframe): Boolean {
@@ -175,6 +191,8 @@ class PriceThreshold : RuleEvaluator<PriceThresholdParams> {
     }
 
     companion object {
+        private val WARNING_THRESHOLD = BigDecimal("0.005")
+        private val CRITICAL_THRESHOLD = BigDecimal("0.015")
         private val timeframeDuration: Map<Timeframe, Duration> = mapOf(
             Timeframe.M1  to Duration.ofMinutes(1),
             Timeframe.M5  to Duration.ofMinutes(5),
