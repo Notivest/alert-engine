@@ -41,105 +41,86 @@ class EventSink(
         rule: AlertRule,
         triggeredAt: OffsetDateTime,
         evaluationResult: RuleEvaluationResult,
-    ): EventSinkResult {
-        val payload: Map<String, Any> = evaluationResult.payload?.let {
-            objectMapper.convertValue(it, mapType)
-        } ?: emptyMap()
+    ): EventSinkResult = runCatching {
+        val payload = evaluationResult.payload.toMap(objectMapper)
 
-        return try {
-            val txResult = withContext(Dispatchers.IO) {
-                transactionTemplate.execute {
-                    if (alertEventRepository.existsByRuleIdAndFingerprint(rule.id, evaluationResult.fingerprint)) {
-                        EventSinkResult.Idempotent
-                    } else {
-                        val event = AlertEvent(
-                            rule = rule,
-                            triggeredAt = triggeredAt,
-                            payload = payload,
-                            fingerprint = evaluationResult.fingerprint,
-                            severity = evaluationResult.severity,
-                        )
-                        val saved = alertEventRepository.save(event)
-                        rule.lastTriggeredAt = triggeredAt
-                        alertRuleRepository.save(rule)
-                        alertsTriggeredCounter.increment()
-                        EventSinkResult.Persisted(saved)
-                    }
-                }
-            } ?: EventSinkResult.Failure(IllegalStateException("transaction returned null"))
+        val txResult = withContext(Dispatchers.IO) {
+            insertEventTx(rule, triggeredAt, evaluationResult, payload)
+        }
 
-            when (txResult) {
-                is EventSinkResult.Persisted -> {
-                    logger.info(
-                        "alert-eval-rule-triggered cycleId={} ruleId={} fingerprint={} severity={}",
-                        cycleId,
-                        rule.id,
-                        evaluationResult.fingerprint,
-                        evaluationResult.severity,
-                    )
-
-                    val notificationSent = try {
-                        withContext(Dispatchers.IO) {
-                            notificationService.send(txResult.event)
-                        }
-                        true
-                    } catch (ex: Exception) {
-                        logger.error(
-                            "alert-eval-rule-notification-error cycleId={} ruleId={} fingerprint={} message=\"failed to emit notification\"",
-                            cycleId,
-                            rule.id,
-                            evaluationResult.fingerprint,
-                            ex,
-                        )
-                        errorMetrics.increment("notification")
-                        false
-                    }
-
-                    if (!notificationSent) {
-                        txResult.copy(notificationSent = false)
-                    } else {
-                        txResult
-                    }
-                }
-
-                EventSinkResult.Idempotent -> {
-                    logger.info(
-                        "alert-eval-rule-idempotent cycleId={} ruleId={} fingerprint={} message=\"duplicate fingerprint skipped\"",
-                        cycleId,
-                        rule.id,
-                        evaluationResult.fingerprint,
-                    )
-                    txResult
-                }
-
-                is EventSinkResult.Failure -> {
-                    logger.error(
-                        "alert-eval-rule-persist-error cycleId={} ruleId={} fingerprint={} message=\"failed to persist event\"",
-                        cycleId,
-                        rule.id,
-                        evaluationResult.fingerprint,
-                        txResult.exception,
-                    )
-                    errorMetrics.increment("persistence")
-                    txResult
-                }
+        when (txResult) {
+            is EventSinkResult.Persisted -> {
+                val sent = sendNotification(txResult.event)
+                if (sent) markSent(txResult.event)
+                if (!sent) txResult.copy(notificationSent = false) else txResult
             }
-        } catch (ex: Exception) {
-            logger.error(
-                "alert-eval-rule-persist-error cycleId={} ruleId={} fingerprint={} message=\"failed to persist event\"",
-                cycleId,
-                rule.id,
-                evaluationResult.fingerprint,
-                ex,
-            )
-            errorMetrics.increment("persistence")
-            EventSinkResult.Failure(ex)
+            else -> txResult
+        }
+    }.getOrElse { ex ->
+        errorMetrics.increment("persistence")
+        logger.error("persist-failed fp={}", evaluationResult.fingerprint, ex)
+        EventSinkResult.Failure(ex)
+    }
+
+    private fun insertEventTx(
+        rule: AlertRule,
+        triggeredAt: OffsetDateTime,
+        result: RuleEvaluationResult,
+        payload: Map<String, Any>
+    ): EventSinkResult =
+        transactionTemplate.execute {
+            try {
+                val event = AlertEvent(
+                    rule = rule,
+                    triggeredAt = triggeredAt,
+                    payload = payload,
+                    fingerprint = result.fingerprint,
+                    severity = result.severity.toSeverityAlert(),
+                    sent = false
+                )
+                val saved = alertEventRepository.save(event)
+                rule.lastTriggeredAt = triggeredAt
+                alertRuleRepository.save(rule)
+                alertsTriggeredCounter.increment()
+                EventSinkResult.Persisted(saved)
+            } catch (ex: org.springframework.dao.DataIntegrityViolationException) {
+                // Choque con UNIQUE(rule_id, fingerprint) => idempotente
+                EventSinkResult.Idempotent
+            }
+        } ?: EventSinkResult.Failure(IllegalStateException("tx returned null"))
+
+    private suspend fun sendNotification(event: AlertEvent): Boolean =
+        runCatching { withContext(Dispatchers.IO) { notificationService.send(event) } }
+            .onFailure {
+                logger.error("notification-failed fp={}", event.fingerprint, it)
+                errorMetrics.increment("notification")
+            }
+            .isSuccess
+
+    private suspend fun markSent(event: AlertEvent) {
+        withContext(Dispatchers.IO) {
+            transactionTemplate.execute {
+                event.sent = true
+                alertEventRepository.save(event)
+            }
         }
     }
+
+    // utilidades cortas
+    private fun Any?.toMap(objectMapper: ObjectMapper): Map<String, Any> =
+        this?.let { objectMapper.convertValue(it, mapType) } ?: emptyMap()
+
+    private fun Any?.toSeverityAlert(): com.notivest.alertengine.models.enums.SeverityAlert =
+        when (this?.toString()) {
+            "CRITICAL" -> com.notivest.alertengine.models.enums.SeverityAlert.CRITICAL
+            "WARNING"  -> com.notivest.alertengine.models.enums.SeverityAlert.WARNING
+            else       -> com.notivest.alertengine.models.enums.SeverityAlert.INFO
+        }
 
     companion object {
         private val mapType = object : TypeReference<Map<String, Any>>() {}
     }
+
 }
 
 sealed interface EventSinkResult {

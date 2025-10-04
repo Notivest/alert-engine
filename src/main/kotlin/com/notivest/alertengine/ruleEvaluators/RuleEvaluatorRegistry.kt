@@ -1,6 +1,7 @@
 package com.notivest.alertengine.ruleEvaluators
 
 import com.notivest.alertengine.models.enums.AlertKind
+import com.notivest.alertengine.ruleEvaluators.evaluators.RuleEvaluator
 import com.notivest.alertengine.ruleEvaluators.exceptions.DuplicateRuleEvaluatorException
 import com.notivest.alertengine.ruleEvaluators.exceptions.MissingRuleEvaluatorException
 import org.springframework.stereotype.Component

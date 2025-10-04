@@ -1,4 +1,4 @@
-package com.notivest.alertengine.ruleEvaluators
+package com.notivest.alertengine.ruleEvaluators.evaluators
 
 import com.notivest.alertengine.models.AlertRule
 import com.notivest.alertengine.models.enums.AlertKind

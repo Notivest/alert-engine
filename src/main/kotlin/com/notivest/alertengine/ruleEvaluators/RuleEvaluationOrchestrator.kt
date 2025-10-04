@@ -6,6 +6,7 @@ import com.notivest.alertengine.models.AlertRule
 import com.notivest.alertengine.ruleEvaluators.data.PriceSeries
 import com.notivest.alertengine.ruleEvaluators.data.RuleEvaluationContext
 import com.notivest.alertengine.ruleEvaluators.data.RuleEvaluationResult
+import com.notivest.alertengine.ruleEvaluators.evaluators.RuleEvaluator
 import com.notivest.alertengine.validation.AlertParamsValidator
 import org.springframework.stereotype.Component
 
