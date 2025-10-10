@@ -94,7 +94,7 @@ class AlertRuleControllerTest {
             symbol = req.symbol,
             kind = req.kind,
             params = req.params,
-            timeframe = req.timeframe,
+            timeframe = Timeframe.D1,
             status = RuleStatus.ACTIVE
         )
 

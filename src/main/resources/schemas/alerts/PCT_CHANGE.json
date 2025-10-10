@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://notivest.io/schemas/pct_change.json",
+  "title": "PCT_CHANGE",
+  "description": "Triggers when the percent change between the latest bar and the bar N lookbacks satisfies the operator.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["operator", "pct", "lookbackBars"],
+  "properties": {
+    "operator": {
+      "type": "string",
+      "enum": ["GTE", "LTE", "GT", "LT"],
+      "description": "Comparison operator applied to the computed percent change."
+    },
+    "pct": {
+      "type": "number",
+      "description": "Percent change threshold expressed in percentage points (e.g. 5.5 for 5.5%)."
+    },
+    "lookbackBars": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Number of completed bars to look back from the latest bar."
+    },
+    "basis": {
+      "type": "string",
+      "enum": ["CLOSE", "HL2", "HLC3"],
+      "default": "CLOSE",
+      "description": "Price basis used to compute the percent change."
+    }
+  },
+  "examples": [
+    { "operator": "GTE", "pct": 3.5, "lookbackBars": 12 },
+    { "operator": "LTE", "pct": -2.0, "lookbackBars": 5, "basis": "HL2" }
+  ]
+}

@@ -7,6 +7,7 @@ data class RuleEvaluationResult(
     val triggered: Boolean,
     val severity: SeverityAlert,
     val fingerprint: String,
+    val reason : String? = null,
     val payload: ObjectNode? = null,
     val newState: ObjectNode? = null
 )
