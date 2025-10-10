@@ -82,6 +82,30 @@ class AlertRuleServiceImplTest {
     }
 
     @Test
+    fun `create - PRICE_THRESHOLD permite timeframe nulo y aplica default`() {
+        val userId = UUID.randomUUID()
+        val req = CreateAlertRuleRequest(
+            symbol = "AAPL",
+            kind = AlertKind.PRICE_THRESHOLD,
+            params = mapOf("price" to 150.0),
+            timeframe = null,
+        )
+
+        whenever(repository.saveAndFlush(any<AlertRule>()))
+            .thenAnswer { inv -> inv.getArgument<AlertRule>(0) }
+
+        val saved = service.create(userId, req)
+
+        argumentCaptor<AlertRule>().apply {
+            verify(repository).saveAndFlush(capture())
+            val ent = firstValue
+            assertThat(ent.timeframe).isEqualTo(Timeframe.D1)
+        }
+
+        assertThat(saved.timeframe).isEqualTo(Timeframe.D1)
+    }
+
+    @Test
     fun `update - revalida si cambian params y aplica cambios parciales`() {
         val userId = UUID.randomUUID()
         val id = UUID.randomUUID()

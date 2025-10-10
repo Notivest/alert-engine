@@ -18,14 +18,13 @@ data class CreateAlertRuleRequest (
     val symbol: String,
 
     @field:NotNull
-    val kind: AlertKind,
+    var kind: AlertKind,
 
     @field:NotNull
     @field:Size(min = 1) // que tenga al menos 1 parámetro
-    val params: Map<String, Any>,
+    var params: Map<String, Any>,
 
-    @field:NotNull
-    val timeframe: Timeframe,
+    val timeframe: Timeframe? = null,
 
     // opcional; si viene null, el service pone ACTIVE
     val status: RuleStatus? = null,

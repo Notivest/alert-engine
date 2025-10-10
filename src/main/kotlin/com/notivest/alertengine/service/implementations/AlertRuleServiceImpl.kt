@@ -4,10 +4,13 @@ import com.notivest.alertengine.controllers.dto.alertrule.request.CreateAlertRul
 import com.notivest.alertengine.controllers.dto.alertrule.request.GetAlertQuery
 import com.notivest.alertengine.controllers.dto.alertrule.request.UpdateAlertRuleRequest
 import com.notivest.alertengine.exception.ForbiddenOperationException
+import com.notivest.alertengine.exception.InvalidParamsException
 import com.notivest.alertengine.exception.ResourceNotFoundException
 import com.notivest.alertengine.models.AlertRule
+import com.notivest.alertengine.models.enums.AlertKind
 import com.notivest.alertengine.models.enums.RuleStatus
 import com.notivest.alertengine.models.enums.SeverityAlert
+import com.notivest.alertengine.models.enums.Timeframe
 import com.notivest.alertengine.pricefetcher.client.PriceDataClient
 import com.notivest.alertengine.pricefetcher.listener.WatchlistAdd
 import com.notivest.alertengine.repositories.AlertRuleRepository
@@ -52,12 +55,17 @@ class AlertRuleServiceImpl(
     @Transactional
     override fun create(userId: UUID, command: CreateAlertRuleRequest): AlertRule {
         validator.validate(command.kind, command.params)
+        val timeframe = command.timeframe ?: Timeframe.D1
+        if (command.timeframe == null && command.kind != AlertKind.PRICE_THRESHOLD) {
+            throw InvalidParamsException("Timeframe is required for ${command.kind}")
+        }
+
         val entity = AlertRule(
             userId = userId,
             symbol = command.symbol,
             kind = command.kind,
             params = command.params,
-            timeframe = command.timeframe,
+            timeframe = timeframe,
             status = command.status ?: RuleStatus.ACTIVE,
             notifyMinSeverity = command.notifyMinSeverity ?: SeverityAlert.INFO,
             debounceTime = command.debounceSeconds?.let { Duration.ofSeconds(it) }

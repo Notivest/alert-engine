@@ -1,5 +1,6 @@
 package com.notivest.alertengine.scheduler
 import com.notivest.alertengine.models.AlertRule
+import com.notivest.alertengine.models.enums.AlertKind
 import com.notivest.alertengine.models.enums.RuleStatus
 import com.notivest.alertengine.repositories.AlertRuleRepository
 import com.notivest.alertengine.ruleEvaluators.data.RuleEvaluationContext
@@ -57,11 +58,46 @@ class AlertEvaluationJob(
 
         for ((key, rules) in grouped) {
             val (symbol, timeframe) = key
-            val series = groupProcessor.loadSeries(cycleId, symbol, timeframe) ?: continue
+            val needsQuotes = rules.any { it.kind.requiresQuotes }
+            val needsHistorical = rules.any { it.kind.requiresHistorical }
+
+            val quoteSeries = if (needsQuotes) {
+                groupProcessor.loadQuoteSeries(cycleId, symbol, timeframe)
+            } else {
+                null
+            }
+
+            val historicalSeries = if (needsHistorical) {
+                groupProcessor.loadHistoricalSeries(cycleId, symbol, timeframe)
+            } else {
+                null
+            }
             val context = RuleEvaluationContext(evaluatedAt = evaluatedAt, timeframe = timeframe)
 
-            rules.asFlow()
-                .flatMapMerge(concurrency = concurrency) { rule ->
+            rules.asSequence()
+                .mapNotNull { rule ->
+                    val series = when {
+                        rule.kind.requiresQuotes -> quoteSeries
+                        else -> historicalSeries
+                    }
+
+                    if (series == null) {
+                        logger.warn(
+                            "alert-eval-rule-skipped cycleId={} ruleId={} symbol={} timeframe={} kind={} message=\"missing price data\"",
+                            cycleId,
+                            rule.id,
+                            rule.symbol,
+                            rule.timeframe,
+                            rule.kind,
+                        )
+                        null
+                    } else {
+                        rule to series
+                    }
+                }
+                .toList()
+                .asFlow()
+                .flatMapMerge(concurrency = concurrency) { (rule, series) ->
                     flow {
                         emit(ruleRunner.runRule(cycleId, rule, context, series))
                     }.flowOn(evaluationDispatcher)
@@ -121,3 +157,15 @@ class AlertEvaluationJob(
         return elapsed < debounce
     }
 }
+
+private val AlertKind.requiresQuotes: Boolean
+    get() = when (this) {
+        AlertKind.PRICE_THRESHOLD -> true
+        else -> false
+    }
+
+private val AlertKind.requiresHistorical: Boolean
+    get() = when (this) {
+        AlertKind.PRICE_THRESHOLD -> false
+        else -> true
+    }

@@ -4,6 +4,7 @@ import com.notivest.alertengine.models.enums.Timeframe
 import com.notivest.alertengine.pricefetcher.client.PriceDataClient
 import com.notivest.alertengine.pricefetcher.dto.CandleMapper
 import com.notivest.alertengine.ruleEvaluators.data.DefaultPriceSeries
+import com.notivest.alertengine.ruleEvaluators.data.Candle
 import io.micrometer.core.instrument.MeterRegistry
 import io.micrometer.core.instrument.Timer
 import kotlinx.coroutines.Dispatchers
@@ -25,7 +26,88 @@ class GroupProcessor(
         .description("Latency of price fetch operations per group")
         .register(meterRegistry)
 
-    suspend fun loadSeries(
+    suspend fun loadHistoricalSeries(
+        cycleId: UUID,
+        symbol: String,
+        timeframe: Timeframe,
+    ): DefaultPriceSeries? = loadSeries(cycleId, symbol, timeframe, PriceDataSource.HISTORICAL)
+
+    suspend fun loadQuoteSeries(
+        cycleId: UUID,
+        symbol: String,
+        timeframe: Timeframe,
+    ): DefaultPriceSeries? = loadSeries(cycleId, symbol, timeframe, PriceDataSource.QUOTES)
+
+    private suspend fun loadSeries(
+        cycleId: UUID,
+        symbol: String,
+        timeframe: Timeframe,
+        source: PriceDataSource,
+    ): DefaultPriceSeries? {
+        val timerSample = Timer.start(meterRegistry)
+        return try {
+            when (source) {
+                PriceDataSource.HISTORICAL -> loadFromHistorical(cycleId, symbol, timeframe)
+                PriceDataSource.QUOTES -> loadFromQuotes(cycleId, symbol, timeframe)
+            }
+        } catch (ex: Exception) {
+            logger.error(
+                "alert-eval-group-fetch-error cycleId={} symbol={} timeframe={} source={} message=\"price fetch failed\"",
+                cycleId,
+                symbol,
+                timeframe,
+                source,
+                ex,
+            )
+            errorMetrics.increment("price_fetch")
+            null
+        } finally {
+            timerSample.stop(fetchTimer)
+        }
+    }
+
+    private suspend fun loadFromQuotes(
+        cycleId: UUID,
+        symbol: String,
+        timeframe: Timeframe,
+    ): DefaultPriceSeries? {
+        val quotes = withContext(Dispatchers.IO) {
+            priceDataClient.getQuotes(listOf(symbol))
+        }
+        val quote = quotes[symbol]
+        if (quote == null) {
+            logger.warn(
+                "alert-eval-group-empty-quote cycleId={} symbol={} message=\"quote not returned\"",
+                cycleId,
+                symbol,
+            )
+            errorMetrics.increment("quote_missing")
+            return null
+        }
+
+        if (quote.stale == true) {
+            logger.warn(
+                "alert-eval-group-stale-quote cycleId={} symbol={} message=\"quote marked as stale\"",
+                cycleId,
+                symbol,
+            )
+            errorMetrics.increment("quote_stale")
+            return null
+        }
+
+        val lastPrice = quote.last.toDouble()
+        val candle = Candle(
+            openTime = quote.asOf,
+            open = quote.open?.toDouble() ?: lastPrice,
+            high = quote.high?.toDouble() ?: lastPrice,
+            low = quote.low?.toDouble() ?: lastPrice,
+            close = lastPrice,
+        )
+
+        return DefaultPriceSeries(symbol = symbol, timeframe = timeframe, candles = listOf(candle))
+    }
+
+    private suspend fun loadFromHistorical(
         cycleId: UUID,
         symbol: String,
         timeframe: Timeframe,
@@ -42,44 +124,34 @@ class GroupProcessor(
             return null
         }
 
-        val timerSample = Timer.start(meterRegistry)
-        return try {
-            val candles = withContext(Dispatchers.IO) {
-                priceDataClient.getHistorical(
-                    symbol = symbol,
-                    timeframe = priceTimeframe,
-                    limit = properties.historyLookback,
-                )
-            }
+        val candles = withContext(Dispatchers.IO) {
+            priceDataClient.getHistorical(
+                symbol = symbol,
+                timeframe = priceTimeframe,
+                limit = properties.historyLookback,
+            )
+        }
 
-            val ordered = candles
-                .map(CandleMapper::fromDto)
-                .sortedBy { it.openTime }
+        val ordered = candles
+            .map(CandleMapper::fromDto)
+            .sortedBy { it.openTime }
 
-            if (ordered.isEmpty()) {
-                logger.warn(
-                    "alert-eval-group-empty cycleId={} symbol={} timeframe={} message=\"no candles returned\"",
-                    cycleId,
-                    symbol,
-                    timeframe,
-                )
-                errorMetrics.increment("empty_series")
-                null
-            } else {
-                DefaultPriceSeries(symbol = symbol, timeframe = timeframe, candles = ordered)
-            }
-        } catch (ex: Exception) {
-            logger.error(
-                "alert-eval-group-fetch-error cycleId={} symbol={} timeframe={} message=\"price fetch failed\"",
+        if (ordered.isEmpty()) {
+            logger.warn(
+                "alert-eval-group-empty cycleId={} symbol={} timeframe={} message=\"no candles returned\"",
                 cycleId,
                 symbol,
                 timeframe,
-                ex,
             )
-            errorMetrics.increment("price_fetch")
-            null
-        } finally {
-            timerSample.stop(fetchTimer)
+            errorMetrics.increment("empty_series")
+            return null
         }
+
+        return DefaultPriceSeries(symbol = symbol, timeframe = timeframe, candles = ordered)
+    }
+
+    enum class PriceDataSource {
+        HISTORICAL,
+        QUOTES,
     }
 }

@@ -43,7 +43,7 @@ class PriceThreshold : RuleEvaluator<PriceThresholdParams> {
         val close: Double = last.close
 
         // 2) Precio válido (no nulo, no NaN) y barra no "stale"
-        if (close.isNaN() || isStale(barTs, ctx.evaluatedAt, rule.timeframe)) {
+        if (close.isNaN()) {
             return noTrigger(rule, barTs, params)
         }
 
@@ -147,12 +147,6 @@ class PriceThreshold : RuleEvaluator<PriceThresholdParams> {
         }
     }
 
-    private fun isStale(barTs: Instant, now: Instant, tf: Timeframe): Boolean {
-        val window = timeframeDuration[tf] ?: return false
-        // Tolerancia 2x para atrasos de ingesta
-        return Duration.between(barTs, now) > window.multipliedBy(2)
-    }
-
     private fun fingerprint(
         kind: String,
         operator: Operator,
@@ -193,12 +187,5 @@ class PriceThreshold : RuleEvaluator<PriceThresholdParams> {
     companion object {
         private val WARNING_THRESHOLD = BigDecimal("0.005")
         private val CRITICAL_THRESHOLD = BigDecimal("0.015")
-        private val timeframeDuration: Map<Timeframe, Duration> = mapOf(
-            Timeframe.M1  to Duration.ofMinutes(1),
-            Timeframe.M5  to Duration.ofMinutes(5),
-            Timeframe.M15 to Duration.ofMinutes(15),
-            Timeframe.H1  to Duration.ofHours(1),
-            Timeframe.D1  to Duration.ofDays(1)
-        )
     }
 }
