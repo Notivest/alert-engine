@@ -16,7 +16,9 @@ import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import org.springframework.transaction.PlatformTransactionManager
 import org.springframework.transaction.support.TransactionTemplate
+import java.time.Instant
 import java.time.OffsetDateTime
+import java.time.ZoneOffset
 import java.util.UUID
 
 @Component
@@ -28,6 +30,7 @@ class EventSink(
     private val objectMapper: ObjectMapper,
     private val errorMetrics: ErrorMetrics,
     transactionManager: PlatformTransactionManager,
+    private val ruleStateStore: RuleStateStore,
 ) {
 
     private val logger = LoggerFactory.getLogger(EventSink::class.java)
@@ -43,9 +46,24 @@ class EventSink(
         evaluationResult: RuleEvaluationResult,
     ): EventSinkResult = runCatching {
         val payload = evaluationResult.payload.toMap(objectMapper)
+        val ruleId = requireNotNull(rule.id) { "rule must be persisted before persisting events" }
+        val barToTs = extractBarInstant(payload)
+
+        if (barToTs != null) {
+            val lastToTs = ruleStateStore.getLastToTs(ruleId)
+            if (lastToTs == barToTs) {
+                logger.debug(
+                    "alert-event-debounced ruleId={} fingerprint={} toTs={}",
+                    ruleId,
+                    evaluationResult.fingerprint,
+                    barToTs,
+                )
+                return EventSinkResult.Idempotent
+            }
+        }
 
         val txResult = withContext(Dispatchers.IO) {
-            insertEventTx(rule, triggeredAt, evaluationResult, payload)
+            insertEventTx(rule, triggeredAt, evaluationResult, payload, barToTs)
         }
 
         when (txResult) {
@@ -75,28 +93,49 @@ class EventSink(
         rule: AlertRule,
         triggeredAt: OffsetDateTime,
         result: RuleEvaluationResult,
-        payload: Map<String, Any>
+        payload: Map<String, Any>,
+        barToTs: Instant?,
     ): EventSinkResult =
         transactionTemplate.execute {
-            try {
-                val event = AlertEvent(
-                    rule = rule,
-                    triggeredAt = triggeredAt,
-                    payload = payload,
-                    fingerprint = result.fingerprint,
-                    severity = result.severity,
-                    sent = false
+            val ruleId = requireNotNull(rule.id) { "rule must be persisted" }
+            val eventId = UUID.randomUUID()
+            val now = OffsetDateTime.now(ZoneOffset.UTC)
+            val rowsInserted = alertEventRepository.insertIfAbsent(
+                id = eventId,
+                ruleId = ruleId,
+                triggeredAt = triggeredAt,
+                payload = objectMapper.writeValueAsString(payload),
+                fingerprint = result.fingerprint,
+                severity = result.severity.name,
+                sent = false,
+                createdAt = now,
+                updatedAt = now,
+            )
+
+            if (rowsInserted == 0) {
+                logger.debug(
+                    "alert-event-duplicate ruleId={} fingerprint={}",
+                    ruleId,
+                    result.fingerprint,
                 )
-                val saved = alertEventRepository.save(event)
+                EventSinkResult.Idempotent
+            } else {
+                val saved = alertEventRepository.findByRuleIdAndFingerprint(ruleId, result.fingerprint)
+                    ?: throw IllegalStateException("inserted alert event not found")
                 rule.lastTriggeredAt = triggeredAt
                 alertRuleRepository.save(rule)
+                ruleStateStore.updateLastToTs(ruleId, barToTs)
                 alertsTriggeredCounter.increment()
                 EventSinkResult.Persisted(saved)
-            } catch (ex: org.springframework.dao.DataIntegrityViolationException) {
-                // Choque con UNIQUE(rule_id, fingerprint) => idempotente
-                EventSinkResult.Idempotent
             }
         } ?: EventSinkResult.Failure(IllegalStateException("tx returned null"))
+
+    private fun extractBarInstant(payload: Map<String, Any>): Instant? {
+        val toTs = payload["toTs"]?.toString()
+        val asOf = payload["asOf"]?.toString()
+        val candidate = toTs ?: asOf ?: return null
+        return runCatching { Instant.parse(candidate) }.getOrNull()
+    }
 
     private suspend fun sendNotification(event: AlertEvent): Boolean =
         runCatching { withContext(Dispatchers.IO) { notificationService.send(event) } }

@@ -4,6 +4,7 @@ import com.notivest.alertengine.models.AlertEvent
 import com.notivest.alertengine.models.AlertRule
 import com.notivest.alertengine.models.enums.AlertKind
 import com.notivest.alertengine.models.enums.RuleStatus
+import com.notivest.alertengine.models.enums.SeverityAlert
 import com.notivest.alertengine.models.enums.Timeframe
 import com.notivest.alertengine.repositories.AlertEventRepository
 import com.notivest.alertengine.repositories.AlertRuleRepository
@@ -87,4 +88,35 @@ class AlertEventRepositoryTest {
 
         assertThat(eventRepository.existsByRuleIdAndFingerprint(rule.id, fp)).isTrue()
     }
+    @Test
+    fun `insertIfAbsent skips duplicates`() {
+        val rule = newRule()
+        val ruleId = requireNotNull(rule.id)
+
+        val now = OffsetDateTime.now(ZoneOffset.UTC).withNano(0)
+        val payloadJson = """{"last":201.5}"""
+        val fp = "dup-upsert"
+
+        val first = eventRepository.insertIfAbsent(
+            id = UUID.randomUUID(), ruleId = ruleId, triggeredAt = now,
+            payload = payloadJson, fingerprint = fp,
+            severity = SeverityAlert.INFO.name, sent = false,
+            createdAt = now, updatedAt = now,
+        )
+        val second = eventRepository.insertIfAbsent(
+            id = UUID.randomUUID(), ruleId = ruleId, triggeredAt = now,
+            payload = payloadJson, fingerprint = fp,
+            severity = SeverityAlert.INFO.name, sent = false,
+            createdAt = now, updatedAt = now,
+        )
+
+        assertThat(first).isEqualTo(1)
+        assertThat(second).isEqualTo(0)
+
+        // ✅ No deserializa JSON
+        assertThat(eventRepository.existsByRuleIdAndFingerprint(ruleId, fp)).isTrue()
+
+        assertThat(eventRepository.countByRuleId(ruleId)).isEqualTo(1L)
+    }
+
 }
