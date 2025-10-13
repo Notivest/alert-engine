@@ -41,6 +41,7 @@ class AlertRuleController(
         @AuthenticationPrincipal auth: Jwt
     ): Page<AlertRuleResponse> {
         val userId = userIdResolver.requireUserId(auth)
+        println(userId)
         return alertRuleService.list(userId, query, pageable).map { it.toResponse() }
     }
 

@@ -13,8 +13,8 @@ import java.util.UUID
 
 interface AlertEventRepository : JpaRepository<AlertEvent, UUID> {
     fun existsByRuleIdAndFingerprint(ruleId: UUID, fingerprint: String): Boolean
-    fun findTop50ByRuleIdOrderByTriggeredAtDesc(ruleId: UUID): List<AlertEvent>
     fun findAllByRuleId(ruleId: UUID, pageable: Pageable): Page<AlertEvent>
+    fun findAllByRuleUserId(userId: UUID, pageable: Pageable): Page<AlertEvent>
     fun findByRuleIdAndFingerprint(ruleId: UUID, fingerprint: String): AlertEvent?
     fun countByRuleId(ruleId: UUID): Long
 
