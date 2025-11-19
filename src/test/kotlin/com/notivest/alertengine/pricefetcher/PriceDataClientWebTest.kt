@@ -143,7 +143,7 @@ class PriceDataClientWebTest {
     fun `getHistorical - orden ascendente, dedupe y limit`() = runTest {
         server.enqueue(json(200, """
             {
-              "symbol":"AAPL","timeframe":"T1D",
+              "symbol": {"ticker":"AAPL"}, "timeframe":"T1D",
               "items":[
                 {"ts":"2024-01-02T00:00:00Z","o":2,"h":3,"l":1,"c":2,"v":100,"adjusted":true},
                 {"ts":"2024-01-01T00:00:00Z","o":1,"h":2,"l":1,"c":1,"v":90,"adjusted":true},
