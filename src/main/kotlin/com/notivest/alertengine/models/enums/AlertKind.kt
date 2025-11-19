@@ -11,10 +11,10 @@ enum class AlertKind {
     // params: { "fast": int, "slow": int, "direction": "UP|DOWN" }
     MA_CROSS,
 
-    // params: { "period": int, "operator": "GTE|LTE|GT|LT", "level": number }
-    RSI_LEVEL,
+    // params: { "period": int, "threshold": number, "operator": "ABOVE|BELOW|CROSSING_UP|CROSSING_DOWN", "timeframe": "M1|..." }
+    RSI,
 
-    // params: { "multiplier": number, "lookbackBars": int }
+    // params: { "lookback": int, "operator": "ABOVE_MA|ABOVE_PCTL", "multiplier": number?, "percentile": number? }
     VOLUME_SPIKE,
 
     // params: { "atrPeriod": int, "multiplier": number, "basis": "CLOSE|HL2|HLC3" }

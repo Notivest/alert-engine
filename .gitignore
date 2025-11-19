@@ -5,7 +5,9 @@ build/
 !**/src/main/**/build/
 !**/src/test/**/build/
 .env
-
+AGENTS.md
+/docs/**
+docs/descripcion-proyecto.md
 ### STS ###
 .apt_generated
 .classpath

@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://notivest.io/schemas/ma_cross.json",
+  "title": "MA_CROSS",
+  "description": "Triggers when the fast moving average crosses the slow moving average in the desired direction.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["fast", "slow", "direction"],
+  "properties": {
+    "fast": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Period length (in bars) for the fast moving average."
+    },
+    "slow": {
+      "type": "integer",
+      "minimum": 2,
+      "description": "Period length for the slow moving average. Must be greater than the fast period."
+    },
+    "direction": {
+      "type": "string",
+      "enum": ["UP", "DOWN"],
+      "description": "Cross direction expected to trigger the alert."
+    }
+  },
+  "examples": [
+    { "fast": 9, "slow": 21, "direction": "UP" },
+    { "fast": 20, "slow": 50, "direction": "DOWN" }
+  ]
+}

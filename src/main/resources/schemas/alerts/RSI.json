@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://notivest.io/schemas/rsi.json",
+  "title": "RSI",
+  "description": "Triggers when the Relative Strength Index crosses configurable thresholds.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["threshold", "operator"],
+  "properties": {
+    "period": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 1000,
+      "default": 14,
+      "description": "Number of bars used to compute the RSI."
+    },
+    "threshold": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Threshold value to compare against the latest RSI."
+    },
+    "operator": {
+      "type": "string",
+      "enum": ["ABOVE", "BELOW", "CROSSING_UP", "CROSSING_DOWN"],
+      "description": "Condition applied to the RSI relative to the threshold."
+    },
+    "timeframe": {
+      "type": "string",
+      "enum": ["M1", "M5", "M15", "M30", "H1", "H4", "D1", "W1"],
+      "description": "Optional timeframe override for the calculation."
+    }
+  },
+  "examples": [
+    { "threshold": 70, "operator": "ABOVE" },
+    { "period": 21, "threshold": 30, "operator": "CROSSING_UP" }
+  ]
+}

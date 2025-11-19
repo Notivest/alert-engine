@@ -242,9 +242,9 @@ class PriceDataClientWeb(
 
     private object TfMapper {
         fun toFetcher(tf: Timeframe): String = when (tf) {
-            Timeframe.M1  -> "T1"
-            Timeframe.M5  -> "T5"
-            Timeframe.M15 -> "T15"
+            Timeframe.M1  -> "T1M"
+            Timeframe.M5  -> "T5M"
+            Timeframe.M15 -> "T15M"
             Timeframe.H1  -> "T1H"
             Timeframe.D1  -> "T1D"
         }

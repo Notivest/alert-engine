@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://notivest.io/schemas/volume_spike.json",
+  "title": "VOLUME_SPIKE",
+  "description": "Detects abnormal volume surges relative to trailing activity.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["operator"],
+  "properties": {
+    "operator": {
+      "type": "string",
+      "enum": ["ABOVE_MA", "ABOVE_PCTL"],
+      "description": "Comparison strategy against historical volume."
+    },
+    "lookback": {
+      "type": "integer",
+      "minimum": 2,
+      "default": 20,
+      "description": "Number of previous bars considered as history."
+    },
+    "multiplier": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "default": 2.0,
+      "description": "For ABOVE_MA: trigger when volume is multiplier times higher than the simple average."
+    },
+    "percentile": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "exclusiveMaximum": 1,
+      "default": 0.95,
+      "description": "For ABOVE_PCTL: trigger when volume exceeds this percentile of the historical window."
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "operator": { "const": "ABOVE_MA" } } },
+      "then": { "required": ["multiplier"] }
+    },
+    {
+      "if": { "properties": { "operator": { "const": "ABOVE_PCTL" } } },
+      "then": { "required": ["percentile"] }
+    }
+  ],
+  "examples": [
+    { "operator": "ABOVE_MA", "lookback": 30, "multiplier": 3.0 },
+    { "operator": "ABOVE_PCTL", "percentile": 0.98 }
+  ]
+}

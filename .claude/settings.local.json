@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gradle build:*)",
+      "Bash(git grep:*)",
+      "Bash(timeout 60 ./gradlew compileKotlin:*)",
+      "Bash(pkill:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
