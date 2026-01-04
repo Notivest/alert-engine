@@ -1,8 +1,8 @@
 {
   "info": {
     "name": "Alert Engine API",
-    "description": "Complete API collection for Alert Engine with all endpoints and alert types",
-    "version": "1.0.0",
+    "description": "Complete API collection for Alert Engine endpoints and alert types",
+    "version": "1.1.0",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -145,7 +145,7 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/alerts?page=0&size=10&symbol=AAPL&status=ACTIVE",
+              "raw": "{{base_url}}/alerts?page=0&size=10&symbol=AAPL&status=ACTIVE&kind=PRICE_THRESHOLD&timeframe=D1&sort=createdAt,desc",
               "host": ["{{base_url}}"],
               "path": ["alerts"],
               "query": [
@@ -167,6 +167,65 @@
                 {
                   "key": "status",
                   "value": "ACTIVE",
+                  "disabled": false
+                },
+                {
+                  "key": "kind",
+                  "value": "PRICE_THRESHOLD",
+                  "disabled": false
+                },
+                {
+                  "key": "timeframe",
+                  "value": "D1",
+                  "disabled": false
+                },
+                {
+                  "key": "sort",
+                  "value": "createdAt,desc",
+                  "disabled": false
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "List Alerts (Internal)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/alerts/internal/list?userId={{user_id}}&page=0&size=10&status=ACTIVE&sort=createdAt,desc",
+              "host": ["{{base_url}}"],
+              "path": ["alerts", "internal", "list"],
+              "query": [
+                {
+                  "key": "userId",
+                  "value": "{{user_id}}",
+                  "disabled": false
+                },
+                {
+                  "key": "page",
+                  "value": "0",
+                  "disabled": false
+                },
+                {
+                  "key": "size",
+                  "value": "10",
+                  "disabled": false
+                },
+                {
+                  "key": "status",
+                  "value": "ACTIVE",
+                  "disabled": false
+                },
+                {
+                  "key": "sort",
+                  "value": "createdAt,desc",
                   "disabled": false
                 }
               ]
@@ -218,6 +277,28 @@
       ]
     },
     {
+      "name": "Alert Kinds",
+      "item": [
+        {
+          "name": "List Alert Kinds",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/alert-kinds",
+              "host": ["{{base_url}}"],
+              "path": ["alert-kinds"]
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "Alert Events",
       "item": [
         {
@@ -231,7 +312,7 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/alert-events?page=0&size=20",
+              "raw": "{{base_url}}/alert-events?page=0&size=20&sort=triggeredAt,desc",
               "host": ["{{base_url}}"],
               "path": ["alert-events"],
               "query": [
@@ -243,6 +324,11 @@
                 {
                   "key": "size",
                   "value": "20",
+                  "disabled": false
+                },
+                {
+                  "key": "sort",
+                  "value": "triggeredAt,desc",
                   "disabled": false
                 }
               ]
@@ -261,6 +347,11 @@
     {
       "key": "jwt_token",
       "value": "your_jwt_token_here",
+      "type": "string"
+    },
+    {
+      "key": "user_id",
+      "value": "7ab02c59-8f45-4ef9-9a5b-b1b0d19cb7d2",
       "type": "string"
     },
     {
