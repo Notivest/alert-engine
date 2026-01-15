@@ -99,6 +99,8 @@ class NotificationServiceImpl(
             "fingerprint" to event.fingerprint,
             "payload" to event.payload,
         )
+        rule.title?.takeIf { it.isNotBlank() }?.let { data["ruleTitle"] = it }
+        rule.note?.takeIf { it.isNotBlank() }?.let { data["ruleNote"] = it }
         if (rule.params.isNotEmpty()) {
             data["ruleParams"] = rule.params
         }

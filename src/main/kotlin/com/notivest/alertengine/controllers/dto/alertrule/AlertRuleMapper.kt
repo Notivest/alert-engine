@@ -6,11 +6,14 @@ import com.notivest.alertengine.models.AlertRule
 fun AlertRule.toResponse() = AlertRuleResponse(
     id = requireNotNull(this.id),
     symbol = this.symbol,
+    title = this.title,
+    note = this.note,
+    singleTrigger = this.singleTrigger,
     kind = this.kind.name,
     params = this.params,
     timeframe = this.timeframe.name,
     status = this.status.name,
-    notifyMinSeverity = this.notifyMinSeverity.name,
+    severity = this.severity.name,
     debounceSeconds = this.debounceTime?.seconds,
     createdAt = this.createdAt?.toString(),
     updatedAt = this.updatedAt?.toString()

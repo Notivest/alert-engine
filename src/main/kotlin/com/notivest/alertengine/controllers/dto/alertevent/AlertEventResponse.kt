@@ -5,6 +5,8 @@ import java.util.UUID
 data class AlertEventResponse(
     val id: UUID,
     val ruleId: UUID,
+    val ruleTitle: String?,
+    val ruleNote: String?,
     val triggeredAt: String,
     val payload: Map<String, Any>,
     val fingerprint: String,

@@ -1,0 +1,372 @@
+{
+  "info": {
+    "name": "Alert Engine - Create AAPL Alerts",
+    "description": "Requests to create the AAPL alerts listed in the spec.",
+    "version": "1.0.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Create Alert - MA_CROSS M1 fast=1 slow=2 UP",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"symbol\": \"AAPL\",\n  \"kind\": \"MA_CROSS\",\n  \"timeframe\": \"M1\",\n  \"status\": \"ACTIVE\",\n  \"severity\": \"INFO\",\n  \"debounceSeconds\": 0,\n  \"params\": {\n    \"fast\": 1,\n    \"slow\": 2,\n    \"direction\": \"UP\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/alerts",
+          "host": ["{{base_url}}"],
+          "path": ["alerts"]
+        }
+      }
+    },
+    {
+      "name": "Create Alert - MA_CROSS D1 fast=19 slow=20 DOWN",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"symbol\": \"AAPL\",\n  \"kind\": \"MA_CROSS\",\n  \"timeframe\": \"D1\",\n  \"status\": \"ACTIVE\",\n  \"severity\": \"INFO\",\n  \"debounceSeconds\": 30,\n  \"params\": {\n    \"fast\": 19,\n    \"slow\": 20,\n    \"direction\": \"DOWN\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/alerts",
+          "host": ["{{base_url}}"],
+          "path": ["alerts"]
+        }
+      }
+    },
+    {
+      "name": "Create Alert - PCT_CHANGE M5 GTE 0.2 lookback=1 CLOSE",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"symbol\": \"AAPL\",\n  \"kind\": \"PCT_CHANGE\",\n  \"timeframe\": \"M5\",\n  \"status\": \"ACTIVE\",\n  \"severity\": \"INFO\",\n  \"debounceSeconds\": 0,\n  \"params\": {\n    \"operator\": \"GTE\",\n    \"pct\": 0.2,\n    \"lookbackBars\": 1,\n    \"basis\": \"CLOSE\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/alerts",
+          "host": ["{{base_url}}"],
+          "path": ["alerts"]
+        }
+      }
+    },
+    {
+      "name": "Create Alert - PCT_CHANGE W1 GTE 40 lookback=1",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"symbol\": \"AAPL\",\n  \"kind\": \"PCT_CHANGE\",\n  \"timeframe\": \"W1\",\n  \"status\": \"ACTIVE\",\n  \"severity\": \"INFO\",\n  \"debounceSeconds\": 60,\n  \"params\": {\n    \"operator\": \"GTE\",\n    \"pct\": 40,\n    \"lookbackBars\": 1\n  }\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/alerts",
+          "host": ["{{base_url}}"],
+          "path": ["alerts"]
+        }
+      }
+    },
+    {
+      "name": "Create Alert - PCT_CHANGE D1 GTE -1.0 lookback=3 HL2",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"symbol\": \"AAPL\",\n  \"kind\": \"PCT_CHANGE\",\n  \"timeframe\": \"D1\",\n  \"status\": \"ACTIVE\",\n  \"severity\": \"INFO\",\n  \"debounceSeconds\": 60,\n  \"params\": {\n    \"operator\": \"GTE\",\n    \"pct\": -1.0,\n    \"lookbackBars\": 3,\n    \"basis\": \"HL2\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/alerts",
+          "host": ["{{base_url}}"],
+          "path": ["alerts"]
+        }
+      }
+    },
+    {
+      "name": "Create Alert - PRICE_THRESHOLD D1 GTE 1",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"symbol\": \"AAPL\",\n  \"kind\": \"PRICE_THRESHOLD\",\n  \"timeframe\": \"D1\",\n  \"status\": \"ACTIVE\",\n  \"severity\": \"INFO\",\n  \"debounceSeconds\": 300,\n  \"params\": {\n    \"operator\": \"GTE\",\n    \"value\": 1\n  }\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/alerts",
+          "host": ["{{base_url}}"],
+          "path": ["alerts"]
+        }
+      }
+    },
+    {
+      "name": "Create Alert - PRICE_THRESHOLD D1 GT 10000",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"symbol\": \"AAPL\",\n  \"kind\": \"PRICE_THRESHOLD\",\n  \"timeframe\": \"D1\",\n  \"status\": \"ACTIVE\",\n  \"severity\": \"INFO\",\n  \"debounceSeconds\": 300,\n  \"params\": {\n    \"operator\": \"GT\",\n    \"value\": 10000\n  }\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/alerts",
+          "host": ["{{base_url}}"],
+          "path": ["alerts"]
+        }
+      }
+    },
+    {
+      "name": "Create Alert - PRICE_THRESHOLD M1 LT 199.99",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"symbol\": \"AAPL\",\n  \"kind\": \"PRICE_THRESHOLD\",\n  \"timeframe\": \"M1\",\n  \"status\": \"ACTIVE\",\n  \"severity\": \"INFO\",\n  \"debounceSeconds\": 0,\n  \"params\": {\n    \"operator\": \"LT\",\n    \"value\": 199.99\n  }\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/alerts",
+          "host": ["{{base_url}}"],
+          "path": ["alerts"]
+        }
+      }
+    },
+    {
+      "name": "Create Alert - RSI M1 period=14 threshold=50 ABOVE",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"symbol\": \"AAPL\",\n  \"kind\": \"RSI\",\n  \"timeframe\": \"M1\",\n  \"status\": \"ACTIVE\",\n  \"severity\": \"INFO\",\n  \"debounceSeconds\": 0,\n  \"params\": {\n    \"period\": 14,\n    \"threshold\": 50,\n    \"operator\": \"ABOVE\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/alerts",
+          "host": ["{{base_url}}"],
+          "path": ["alerts"]
+        }
+      }
+    },
+    {
+      "name": "Create Alert - RSI D1 threshold=95 CROSSING_UP",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"symbol\": \"AAPL\",\n  \"kind\": \"RSI\",\n  \"timeframe\": \"D1\",\n  \"status\": \"ACTIVE\",\n  \"severity\": \"INFO\",\n  \"debounceSeconds\": 300,\n  \"params\": {\n    \"threshold\": 95,\n    \"operator\": \"CROSSING_UP\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/alerts",
+          "host": ["{{base_url}}"],
+          "path": ["alerts"]
+        }
+      }
+    },
+    {
+      "name": "Create Alert - RSI H1 period=500 threshold=30 CROSSING_DOWN",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"symbol\": \"AAPL\",\n  \"kind\": \"RSI\",\n  \"timeframe\": \"H1\",\n  \"status\": \"ACTIVE\",\n  \"severity\": \"INFO\",\n  \"debounceSeconds\": 60,\n  \"params\": {\n    \"period\": 500,\n    \"threshold\": 30,\n    \"operator\": \"CROSSING_DOWN\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/alerts",
+          "host": ["{{base_url}}"],
+          "path": ["alerts"]
+        }
+      }
+    },
+    {
+      "name": "Create Alert - VOLUME_SPIKE D1 ABOVE_PCTL lookback=20 pctl=0.55",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"symbol\": \"AAPL\",\n  \"kind\": \"VOLUME_SPIKE\",\n  \"timeframe\": \"D1\",\n  \"status\": \"ACTIVE\",\n  \"severity\": \"INFO\",\n  \"debounceSeconds\": 0,\n  \"params\": {\n    \"operator\": \"ABOVE_PCTL\",\n    \"lookback\": 20,\n    \"percentile\": 0.55\n  }\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/alerts",
+          "host": ["{{base_url}}"],
+          "path": ["alerts"]
+        }
+      }
+    },
+    {
+      "name": "Create Alert - VOLUME_SPIKE M5 ABOVE_MA lookback=2 mult=1.1",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"symbol\": \"AAPL\",\n  \"kind\": \"VOLUME_SPIKE\",\n  \"timeframe\": \"M5\",\n  \"status\": \"ACTIVE\",\n  \"severity\": \"INFO\",\n  \"debounceSeconds\": 0,\n  \"params\": {\n    \"operator\": \"ABOVE_MA\",\n    \"lookback\": 2,\n    \"multiplier\": 1.1\n  }\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/alerts",
+          "host": ["{{base_url}}"],
+          "path": ["alerts"]
+        }
+      }
+    },
+    {
+      "name": "Create Alert - VOLUME_SPIKE D1 ABOVE_MA lookback=30 mult=20",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"symbol\": \"AAPL\",\n  \"kind\": \"VOLUME_SPIKE\",\n  \"timeframe\": \"D1\",\n  \"status\": \"ACTIVE\",\n  \"severity\": \"INFO\",\n  \"debounceSeconds\": 300,\n  \"params\": {\n    \"operator\": \"ABOVE_MA\",\n    \"lookback\": 30,\n    \"multiplier\": 20\n  }\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/alerts",
+          "host": ["{{base_url}}"],
+          "path": ["alerts"]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "jwt_token",
+      "value": "your_jwt_token_here",
+      "type": "string"
+    }
+  ]
+}

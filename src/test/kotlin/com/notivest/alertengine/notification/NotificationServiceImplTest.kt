@@ -93,6 +93,8 @@ class NotificationServiceImplTest {
         val templateData = payload["templateData"]
         assertThat(templateData["symbol"].asText()).isEqualTo(rule.symbol)
         assertThat(templateData["ruleKind"].asText()).isEqualTo(rule.kind.name)
+        assertThat(templateData["ruleTitle"].asText()).isEqualTo(rule.title)
+        assertThat(templateData["ruleNote"].asText()).isEqualTo(rule.note)
         assertThat(templateData["payload"]["price"].asDouble()).isEqualTo(123.45)
     }
 
@@ -133,6 +135,8 @@ class NotificationServiceImplTest {
         AlertRule(
             userId = UUID.randomUUID(),
             symbol = "AAPL",
+            title = "Alerta personalizada",
+            note = "Nota para el usuario",
             kind = AlertKind.PRICE_THRESHOLD,
             params = mapOf("operator" to "GTE", "value" to 100),
             timeframe = Timeframe.D1,

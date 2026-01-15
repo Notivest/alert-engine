@@ -63,11 +63,14 @@ class AlertRuleServiceImpl(
         val entity = AlertRule(
             userId = userId,
             symbol = command.symbol,
+            title = normalizeOptional(command.title),
+            note = normalizeOptional(command.note),
+            singleTrigger = command.singleTrigger ?: false,
             kind = command.kind,
             params = command.params,
             timeframe = timeframe,
             status = command.status ?: RuleStatus.ACTIVE,
-            notifyMinSeverity = command.notifyMinSeverity ?: SeverityAlert.INFO,
+            severity = command.severity ?: SeverityAlert.INFO,
             debounceTime = command.debounceSeconds?.let { Duration.ofSeconds(it) }
         )
         val saved = repository.saveAndFlush(entity)
@@ -92,11 +95,15 @@ class AlertRuleServiceImpl(
 
         command.status?.let { rule.status = it }
 
+        command.title?.let { rule.title = normalizeOptional(it) }
+        command.note?.let { rule.note = normalizeOptional(it) }
+        command.singleTrigger?.let { rule.singleTrigger = it }
+
         command.debounceSeconds?.let { secs ->
             rule.debounceTime = Duration.ofSeconds(secs)
         }
 
-        command.notifyMinSeverity?.let { rule.notifyMinSeverity = it }
+        command.severity?.let { rule.severity = it }
 
         return repository.saveAndFlush(rule)
     }
@@ -124,6 +131,9 @@ class AlertRuleServiceImpl(
         }
         return rule
     }
+
+    private fun normalizeOptional(value: String?): String? =
+        value?.trim()?.ifBlank { null }
 
 
 }

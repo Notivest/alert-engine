@@ -52,6 +52,8 @@ class AlertEventControllerTest {
             id = UUID.randomUUID(),
             userId = userId,
             symbol = "AAPL",
+            title = "Alerta de precio",
+            note = "Avisame cuando rompa resistencia",
             kind = AlertKind.PRICE_THRESHOLD,
             params = mapOf("price" to 150.0),
             timeframe = Timeframe.D1,
@@ -78,6 +80,8 @@ class AlertEventControllerTest {
             .andExpect {
                 status { isOk() }
                 jsonPath("$.content[0].id") { value(event.id.toString()) }
+                jsonPath("$.content[0].ruleTitle") { value("Alerta de precio") }
+                jsonPath("$.content[0].ruleNote") { value("Avisame cuando rompa resistencia") }
                 jsonPath("$.content[0].severity") { value("WARNING") }
                 jsonPath("$.totalElements") { value(3) }
             }

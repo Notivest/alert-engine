@@ -1,0 +1,2 @@
+ALTER TABLE alert_rules
+    ADD COLUMN single_trigger BOOLEAN NOT NULL DEFAULT FALSE;

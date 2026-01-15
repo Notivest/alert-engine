@@ -8,6 +8,7 @@ import com.notivest.alertengine.notification.NotificationService
 import com.notivest.alertengine.repositories.AlertEventRepository
 import com.notivest.alertengine.repositories.AlertRuleRepository
 import com.notivest.alertengine.ruleEvaluators.data.RuleEvaluationResult
+import com.notivest.alertengine.models.enums.RuleStatus
 import io.micrometer.core.instrument.Counter
 import io.micrometer.core.instrument.MeterRegistry
 import kotlinx.coroutines.Dispatchers
@@ -68,17 +69,12 @@ class EventSink(
 
         when (txResult) {
             is EventSinkResult.Persisted -> {
-                val shouldNotify = txResult.event.severity.ordinal >= rule.notifyMinSeverity.ordinal
-                if (!shouldNotify) {
-                    txResult.copy(notificationSent = false)
+                val sent = sendNotification(txResult.event)
+                if (sent) {
+                    markSent(txResult.event)
+                    txResult.copy(notificationSent = true)
                 } else {
-                    val sent = sendNotification(txResult.event)
-                    if (sent) {
-                        markSent(txResult.event)
-                        txResult.copy(notificationSent = true)
-                    } else {
-                        txResult.copy(notificationSent = false)
-                    }
+                    txResult.copy(notificationSent = false)
                 }
             }
             else -> txResult
@@ -106,7 +102,7 @@ class EventSink(
                 triggeredAt = triggeredAt,
                 payload = objectMapper.writeValueAsString(payload),
                 fingerprint = result.fingerprint,
-                severity = result.severity.name,
+                severity = rule.severity.name,
                 sent = false,
                 createdAt = now,
                 updatedAt = now,
@@ -123,6 +119,9 @@ class EventSink(
                 val saved = alertEventRepository.findByRuleIdAndFingerprint(ruleId, result.fingerprint)
                     ?: throw IllegalStateException("inserted alert event not found")
                 rule.lastTriggeredAt = triggeredAt
+                if (rule.singleTrigger) {
+                    rule.status = RuleStatus.DISABLED
+                }
                 alertRuleRepository.save(rule)
                 ruleStateStore.updateLastToTs(ruleId, barToTs)
                 alertsTriggeredCounter.increment()

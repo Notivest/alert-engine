@@ -9,11 +9,14 @@ import java.util.UUID
 data class AlertRuleResponse (
     val id: UUID,
     val symbol: String,
+    val title: String?,
+    val note: String?,
+    val singleTrigger: Boolean,
     val kind: String,
     val params: Map<String, Any>,
     val timeframe: String,
     val status: String,
-    val notifyMinSeverity: String,
+    val severity: String,
     val debounceSeconds: Long?,
     val createdAt: String?,
     val updatedAt: String?

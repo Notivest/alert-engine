@@ -48,11 +48,14 @@ class AlertRuleServiceImplTest {
         val userId = UUID.randomUUID()
         val req = CreateAlertRuleRequest(
             symbol = "AAPL",
+            title = "  Alerta de precio  ",
+            note = "  Revisar soporte  ",
+            singleTrigger = true,
             kind = AlertKind.PRICE_THRESHOLD,
             params = mapOf("price" to 100.0),
             timeframe = Timeframe.D1,
             status = null, // default ACTIVE
-            notifyMinSeverity = SeverityAlert.WARNING,
+            severity = SeverityAlert.WARNING,
             debounceSeconds = 30
         )
 
@@ -67,10 +70,13 @@ class AlertRuleServiceImplTest {
             val ent = firstValue
             assertThat(ent.userId).isEqualTo(userId)
             assertThat(ent.symbol).isEqualTo("AAPL")
+            assertThat(ent.title).isEqualTo("Alerta de precio")
+            assertThat(ent.note).isEqualTo("Revisar soporte")
+            assertThat(ent.singleTrigger).isTrue()
             assertThat(ent.kind).isEqualTo(AlertKind.PRICE_THRESHOLD)
             assertThat(ent.timeframe).isEqualTo(Timeframe.D1)
             assertThat(ent.status).isEqualTo(RuleStatus.ACTIVE)
-            assertThat(ent.notifyMinSeverity).isEqualTo(SeverityAlert.WARNING)
+            assertThat(ent.severity).isEqualTo(SeverityAlert.WARNING)
             assertThat(ent.debounceTime).isEqualTo(Duration.ofSeconds(30))
         }
 
@@ -113,6 +119,8 @@ class AlertRuleServiceImplTest {
             id = id,
             userId = userId,
             symbol = "AAPL",
+            title = "Vieja",
+            note = "Observacion",
             kind = AlertKind.PRICE_THRESHOLD,
             params = mapOf("price" to 120.0),
             timeframe = Timeframe.H1,
@@ -124,6 +132,9 @@ class AlertRuleServiceImplTest {
 
         val cmd = UpdateAlertRuleRequest(
             params = mapOf("price" to 110.0),
+            title = "  Nueva  ",
+            note = "  Detalle actualizado ",
+            singleTrigger = true,
             status = RuleStatus.PAUSED,
             debounceSeconds = 90
         )
@@ -132,6 +143,9 @@ class AlertRuleServiceImplTest {
 
         verify(validator).validate(existing.kind, cmd.params!!)
         assertThat(existing.params).isEqualTo(mapOf("price" to 110.0))
+        assertThat(existing.title).isEqualTo("Nueva")
+        assertThat(existing.note).isEqualTo("Detalle actualizado")
+        assertThat(existing.singleTrigger).isTrue()
         assertThat(existing.status).isEqualTo(RuleStatus.PAUSED)
         assertThat(existing.debounceTime).isEqualTo(Duration.ofSeconds(90))
         assertThat(updated).isSameAs(existing)

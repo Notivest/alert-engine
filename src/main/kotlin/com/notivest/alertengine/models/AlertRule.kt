@@ -41,6 +41,12 @@ class AlertRule(
     @Column(nullable = false , length = 20)
     val symbol : String,
 
+    @Column(length = 120)
+    var title: String? = null,
+
+    @Column(length = 500)
+    var note: String? = null,
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
     val kind : AlertKind,
@@ -66,8 +72,11 @@ class AlertRule(
     var lastTriggeredAt : OffsetDateTime? = null,
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "notify_min_severity", nullable = false, length = 10)
-    var notifyMinSeverity: SeverityAlert = SeverityAlert.INFO,
+    @Column(name = "severity", nullable = false, length = 10)
+    var severity: SeverityAlert = SeverityAlert.INFO,
+
+    @Column(name = "single_trigger", nullable = false)
+    var singleTrigger: Boolean = false,
 
 
     @UpdateTimestamp

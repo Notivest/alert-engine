@@ -17,6 +17,12 @@ data class CreateAlertRuleRequest (
     @field:Pattern(regexp = "[A-Z0-9.:-]+")
     val symbol: String,
 
+    @field:Size(max = 120)
+    val title: String? = null,
+
+    @field:Size(max = 500)
+    val note: String? = null,
+
     @field:NotNull
     var kind: AlertKind,
 
@@ -29,7 +35,9 @@ data class CreateAlertRuleRequest (
     // opcional; si viene null, el service pone ACTIVE
     val status: RuleStatus? = null,
 
-    val notifyMinSeverity: SeverityAlert? = null,
+    val singleTrigger: Boolean? = null,
+
+    val severity: SeverityAlert? = null,
 
     @field:PositiveOrZero
     val debounceSeconds: Long? = null

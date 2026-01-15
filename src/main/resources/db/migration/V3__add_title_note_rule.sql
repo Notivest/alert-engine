@@ -1,0 +1,3 @@
+ALTER TABLE alert_rules
+    ADD COLUMN title VARCHAR(120),
+    ADD COLUMN note VARCHAR(500);
