@@ -92,6 +92,7 @@ dependencies {
     testImplementation "org.jetbrains.kotlin:kotlin-test-junit5"
 
     testImplementation("io.github.cdimascio:dotenv-kotlin:6.4.1")
+    implementation("com.google.cloud.sql:postgres-socket-factory:1.17.0")
 }
 
 kotlin {
