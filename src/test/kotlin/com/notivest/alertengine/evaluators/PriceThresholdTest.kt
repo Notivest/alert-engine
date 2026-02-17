@@ -10,6 +10,7 @@ import com.notivest.alertengine.ruleEvaluators.data.RuleEvaluationContext
 import com.notivest.alertengine.ruleEvaluators.evaluators.PriceThreshold
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import java.math.BigDecimal
 import java.time.Instant
 import java.util.UUID
@@ -140,5 +141,29 @@ class PriceThresholdTest {
 
         assertThat(result.triggered).isTrue()
         assertThat(result.payload!!.get("asOf").asText()).isEqualTo(oldQuote.openTime.toString())
+    }
+
+    @Test
+    fun `rejects params when threshold value is non positive`() {
+        val ex = assertThrows<IllegalArgumentException> {
+            PriceThresholdParams(
+                operator = Operator.GTE,
+                value = BigDecimal("-1"),
+            )
+        }
+
+        assertThat(ex.message).contains("value must be > 0")
+    }
+
+    @Test
+    fun `rejects params when threshold value exceeds maximum`() {
+        val ex = assertThrows<IllegalArgumentException> {
+            PriceThresholdParams(
+                operator = Operator.GTE,
+                value = BigDecimal("2000000"),
+            )
+        }
+
+        assertThat(ex.message).contains("value must be <= 1000000")
     }
 }

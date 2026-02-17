@@ -17,16 +17,14 @@ data class VolumeSpikeParams @JsonCreator constructor(
     init {
         val lookback = resolvedLookback()
         require(lookback >= MIN_LOOKBACK) { "lookback must be >= $MIN_LOOKBACK" }
-        when (operator) {
-            VolumeSpikeOperator.ABOVE_MA -> {
-                val multiplier = resolvedMultiplier()
-                require(multiplier.isFinite() && multiplier > 0.0) { "multiplier must be > 0" }
-            }
-            VolumeSpikeOperator.ABOVE_PCTL -> {
-                val percentile = resolvedPercentile()
-                require(percentile.isFinite() && percentile > 0.0 && percentile < 1.0) {
-                    "percentile must be between 0 and 1"
-                }
+        require(lookback <= MAX_LOOKBACK) { "lookback must be <= $MAX_LOOKBACK" }
+        val multiplier = resolvedMultiplier()
+        require(multiplier.isFinite() && multiplier > 0.0) { "multiplier must be > 0" }
+        require(multiplier <= MAX_MULTIPLIER) { "multiplier must be <= $MAX_MULTIPLIER" }
+        if (operator == VolumeSpikeOperator.ABOVE_PCTL) {
+            val percentile = resolvedPercentile()
+            require(percentile.isFinite() && percentile > 0.0 && percentile < 1.0) {
+                "percentile must be between 0 and 1"
             }
         }
     }
@@ -41,7 +39,9 @@ data class VolumeSpikeParams @JsonCreator constructor(
 
     companion object {
         private const val MIN_LOOKBACK = 2
+        private const val MAX_LOOKBACK = 250
         private const val DEFAULT_LOOKBACK = 20
+        private const val MAX_MULTIPLIER = 100.0
         private const val DEFAULT_MULTIPLIER = 2.0
         private const val DEFAULT_PERCENTILE = 0.95
     }

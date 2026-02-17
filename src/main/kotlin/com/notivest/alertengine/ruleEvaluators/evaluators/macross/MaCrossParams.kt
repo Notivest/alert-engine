@@ -15,9 +15,15 @@ data class MaCrossParams @JsonCreator constructor(
 ) {
     init {
         require(fast >= 1) { "fast must be >= 1" }
+        require(fast <= MAX_PERIOD) { "fast must be <= $MAX_PERIOD" }
         require(slow >= 2) { "slow must be >= 2" }
+        require(slow <= MAX_PERIOD) { "slow must be <= $MAX_PERIOD" }
         require(slow > fast) { "slow must be greater than fast" }
     }
 
     fun requiredCandles(): Int = max(fast, slow) + 1
+
+    companion object {
+        private const val MAX_PERIOD = 200
+    }
 }

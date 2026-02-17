@@ -3,6 +3,8 @@ import com.notivest.alertengine.models.AlertRule
 import com.notivest.alertengine.models.enums.AlertKind
 import com.notivest.alertengine.models.enums.RuleStatus
 import com.notivest.alertengine.repositories.AlertRuleRepository
+import com.notivest.alertengine.ruleEvaluators.data.Candle
+import com.notivest.alertengine.ruleEvaluators.data.DefaultPriceSeries
 import com.notivest.alertengine.ruleEvaluators.data.RuleEvaluationContext
 import com.notivest.alertengine.ruleEvaluators.data.RuleEvaluationResult
 import io.micrometer.core.instrument.Counter
@@ -68,7 +70,7 @@ class AlertEvaluationJob(
             }
 
             val historicalSeries = if (needsHistorical) {
-                groupProcessor.loadHistoricalSeries(cycleId, symbol, timeframe)
+                groupProcessor.loadHistoricalSeries(cycleId, symbol, timeframe, evaluatedAt)
             } else {
                 null
             }
@@ -77,6 +79,8 @@ class AlertEvaluationJob(
             rules.asSequence()
                 .mapNotNull { rule ->
                     val series = when {
+                        rule.kind.requiresQuotes && rule.kind.requiresHistorical ->
+                            combineSeries(rule.kind, historicalSeries, quoteSeries)
                         rule.kind.requiresQuotes -> quoteSeries
                         else -> historicalSeries
                     }
@@ -156,11 +160,58 @@ class AlertEvaluationJob(
         val elapsed = Duration.between(lastTriggered, triggeredAt)
         return elapsed < debounce
     }
+
+    private fun combineSeries(
+        kind: AlertKind,
+        historicalSeries: DefaultPriceSeries?,
+        quoteSeries: DefaultPriceSeries?,
+    ): DefaultPriceSeries? {
+        val historical = historicalSeries ?: return null
+        val quote = quoteSeries ?: return null
+        val quoteCandle = quote.candles.lastOrNull() ?: return null
+        val quotePrice = quote.currentPrice ?: quoteCandle.close
+        val quoteTs = quote.currentPriceAsOf ?: quoteCandle.openTime
+        return when (kind) {
+            AlertKind.DRAWDOWN -> {
+                historical.copy(
+                    currentPrice = quotePrice,
+                    currentPriceAsOf = quoteTs,
+                )
+            }
+            AlertKind.PCT_CHANGE -> {
+                val mergedCandles = mergeWithQuoteCandle(historical.candles, quoteCandle)
+                historical.copy(
+                    candles = mergedCandles,
+                    currentPrice = quotePrice,
+                    currentPriceAsOf = quoteTs,
+                )
+            }
+            else -> historical
+        }
+    }
+
+    private fun mergeWithQuoteCandle(
+        historicalCandles: List<Candle>,
+        quoteCandle: Candle,
+    ): List<Candle> {
+        if (historicalCandles.isEmpty()) {
+            return listOf(quoteCandle)
+        }
+
+        val lastHistorical = historicalCandles.last()
+        return when {
+            quoteCandle.openTime.isAfter(lastHistorical.openTime) -> historicalCandles + quoteCandle
+            quoteCandle.openTime == lastHistorical.openTime -> historicalCandles.dropLast(1) + quoteCandle
+            else -> (historicalCandles + quoteCandle).sortedBy { it.openTime }
+        }
+    }
 }
 
 private val AlertKind.requiresQuotes: Boolean
     get() = when (this) {
-        AlertKind.PRICE_THRESHOLD -> true
+        AlertKind.PRICE_THRESHOLD,
+        AlertKind.PCT_CHANGE,
+        AlertKind.DRAWDOWN -> true
         else -> false
     }
 

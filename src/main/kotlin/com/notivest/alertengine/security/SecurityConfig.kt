@@ -57,6 +57,8 @@ class SecurityConfig(
                     "/v3/api-docs/**",
                     "/openapi/**",
                 ).permitAll()
+                it.requestMatchers("/internal/v1/user-data")
+                    .hasAuthority("SCOPE_portfolio:read:user-context")
                 it.anyRequest().authenticated()
             }
             .oauth2ResourceServer { oauth2 ->

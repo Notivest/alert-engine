@@ -20,4 +20,6 @@ interface AlertRuleService {
     fun setStatus(userId: UUID, alertId: UUID, status: RuleStatus): AlertRule
 
     fun get(userId: UUID, alertId: UUID): AlertRule
+
+    fun delete(userId: UUID, alertId: UUID)
 }

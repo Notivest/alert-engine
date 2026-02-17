@@ -16,4 +16,8 @@ interface AlertRuleRepository : JpaRepository<AlertRule, UUID>, JpaSpecification
     fun findByIdAndUserId(id: UUID, userId: UUID): Optional<AlertRule>
 
     fun findAllByStatus(status: RuleStatus): List<AlertRule>
+
+    fun countByUserId(userId: UUID): Long
+
+    fun deleteByUserId(userId: UUID): Long
 }

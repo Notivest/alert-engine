@@ -31,7 +31,7 @@ class RsiEvaluator : RuleEvaluator<RsiParams> {
         params: RsiParams,
     ): RuleEvaluationResult {
         val effectivePeriod = params.resolvedPeriod()
-        val expectedTimeframe = params.resolvedTimeframe(rule.timeframe)
+        val expectedTimeframe = rule.timeframe
 
         if (prices.candles.isEmpty()) {
             return noTrigger(

@@ -13,6 +13,7 @@ import com.notivest.alertengine.ruleEvaluators.evaluators.volumeSpike.VolumeSpik
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.data.Offset
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import java.time.Instant
 import java.util.UUID
 
@@ -127,5 +128,31 @@ class VolumeSpikeEvaluatorTest {
         assertThat(payload.get("thresholdVolume").asDouble())
             .isCloseTo(18.1, Offset.offset(1e-6))
         assertThat(payload.get("currentVolume").asDouble()).isEqualTo(18.1)
+    }
+
+    @Test
+    fun `rejects params when lookback exceeds maximum`() {
+        val ex = assertThrows<IllegalArgumentException> {
+            VolumeSpikeParams(
+                lookbackRaw = 300,
+                multiplierRaw = 2.0,
+                operator = VolumeSpikeOperator.ABOVE_MA,
+            )
+        }
+
+        assertThat(ex.message).contains("lookback must be <= 250")
+    }
+
+    @Test
+    fun `rejects params when multiplier is zero`() {
+        val ex = assertThrows<IllegalArgumentException> {
+            VolumeSpikeParams(
+                lookbackRaw = 20,
+                multiplierRaw = 0.0,
+                operator = VolumeSpikeOperator.ABOVE_MA,
+            )
+        }
+
+        assertThat(ex.message).contains("multiplier must be > 0")
     }
 }

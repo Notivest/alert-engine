@@ -1,5 +1,6 @@
 package com.notivest.alertengine.repository
 
+import com.notivest.alertengine.BaseIntegrationTest
 import com.notivest.alertengine.models.AlertEvent
 import com.notivest.alertengine.models.AlertRule
 import com.notivest.alertengine.models.enums.AlertKind
@@ -24,7 +25,7 @@ import java.util.UUID
 @ActiveProfiles("test")
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-class AlertEventRepositoryTest {
+class AlertEventRepositoryTest : BaseIntegrationTest() {
 
     @Autowired
     lateinit var ruleRepository: AlertRuleRepository

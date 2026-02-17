@@ -12,6 +12,7 @@ import com.notivest.alertengine.ruleEvaluators.evaluators.rsi.RsiOperator
 import com.notivest.alertengine.ruleEvaluators.evaluators.rsi.RsiParams
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import java.time.Instant
 import java.util.UUID
 
@@ -72,6 +73,7 @@ class RsiEvaluatorTest {
         assertThat(result.payload!!.get("previousRsi").asDouble()).isEqualTo(100.0)
         assertThat(result.payload!!.get("period").asInt()).isEqualTo(period)
         assertThat(result.payload!!.get("threshold").asDouble()).isEqualTo(70.0)
+        assertThat(result.payload!!.get("timeframe").asText()).isEqualTo(baseRule.timeframe.name)
         assertThat(result.fingerprint).matches("[0-9a-f]{64}")
     }
 
@@ -131,7 +133,7 @@ class RsiEvaluatorTest {
     }
 
     @Test
-    fun `does not trigger when timeframe override mismatches`() {
+    fun `does not trigger when series timeframe mismatches rule timeframe`() {
         val start = Instant.parse("2024-06-04T00:00:00Z")
         val period = 14
         val closes = rampCloses(period + RsiParams.WARMUP_BARS + 5, start = 120.0)
@@ -140,17 +142,29 @@ class RsiEvaluatorTest {
             period = period,
             threshold = 60.0,
             operator = RsiOperator.ABOVE,
-            timeframe = Timeframe.M15,
         )
 
         val result = evaluator.evaluate(
             context(candles.last().openTime),
             baseRule,
-            prices(candles, timeframe = Timeframe.M5),
+            prices(candles, timeframe = Timeframe.H1),
             params,
         )
 
         assertThat(result.triggered).isFalse()
         assertThat(result.payload!!.get("note").asText()).isEqualTo("timeframe_mismatch")
+    }
+
+    @Test
+    fun `rejects params when period exceeds maximum`() {
+        val ex = assertThrows<IllegalArgumentException> {
+            RsiParams(
+                period = 201,
+                threshold = 60.0,
+                operator = RsiOperator.ABOVE,
+            )
+        }
+
+        assertThat(ex.message).contains("period must be <= 200")
     }
 }

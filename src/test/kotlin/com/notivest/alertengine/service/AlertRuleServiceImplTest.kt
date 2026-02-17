@@ -5,15 +5,19 @@ import com.notivest.alertengine.controllers.dto.alertrule.request.GetAlertQuery
 import com.notivest.alertengine.controllers.dto.alertrule.request.UpdateAlertRuleRequest
 import com.notivest.alertengine.exception.ForbiddenOperationException
 import com.notivest.alertengine.exception.ResourceNotFoundException
+import com.notivest.alertengine.exception.SymbolPriceUnavailableException
 import com.notivest.alertengine.models.AlertRule
 import com.notivest.alertengine.models.enums.AlertKind
 import com.notivest.alertengine.models.enums.RuleStatus
 import com.notivest.alertengine.models.enums.SeverityAlert
 import com.notivest.alertengine.models.enums.Timeframe
+import com.notivest.alertengine.pricefetcher.client.PriceDataClient
+import com.notivest.alertengine.pricefetcher.dto.QuoteDTO
 import com.notivest.alertengine.pricefetcher.listener.WatchlistAdd
 import com.notivest.alertengine.repositories.AlertRuleRepository
 import com.notivest.alertengine.service.implementations.AlertRuleServiceImpl
 import com.notivest.alertengine.validation.AlertParamsValidator
+import kotlinx.coroutines.runBlocking
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test
@@ -21,13 +25,16 @@ import org.mockito.Mockito.mock
 import org.mockito.kotlin.any
 import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.eq
+import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.jpa.domain.Specification
+import java.math.BigDecimal
 import java.time.Duration
+import java.time.Instant
 import java.util.Optional
 import java.util.UUID
 
@@ -36,11 +43,13 @@ class AlertRuleServiceImplTest {
     private val repository: AlertRuleRepository = mock()
     private val validator: AlertParamsValidator = mock()
     private val eventPublisher: ApplicationEventPublisher = mock()
+    private val priceDataClient: PriceDataClient = mock()
 
     private val service = AlertRuleServiceImpl(
         repository = repository,
         validator = validator,
-        eventPublisher = eventPublisher
+        eventPublisher = eventPublisher,
+        priceDataClient = priceDataClient,
     )
 
     @Test
@@ -61,6 +70,18 @@ class AlertRuleServiceImplTest {
 
         whenever(repository.saveAndFlush(any<AlertRule>()))
             .thenAnswer { inv -> inv.getArgument<AlertRule>(0) }
+        runBlocking {
+            whenever(priceDataClient.getQuotes(any())).thenReturn(
+                mapOf(
+                    "AAPL" to QuoteDTO(
+                        symbol = "AAPL",
+                        last = BigDecimal("100.0"),
+                        asOf = Instant.parse("2024-01-01T00:00:00Z"),
+                        prevClose = BigDecimal("99.0"),
+                    )
+                )
+            )
+        }
 
         val saved = service.create(userId, req)
 
@@ -99,6 +120,18 @@ class AlertRuleServiceImplTest {
 
         whenever(repository.saveAndFlush(any<AlertRule>()))
             .thenAnswer { inv -> inv.getArgument<AlertRule>(0) }
+        runBlocking {
+            whenever(priceDataClient.getQuotes(any())).thenReturn(
+                mapOf(
+                    "AAPL" to QuoteDTO(
+                        symbol = "AAPL",
+                        last = BigDecimal("150.0"),
+                        asOf = Instant.parse("2024-01-01T00:00:00Z"),
+                        prevClose = BigDecimal("149.5"),
+                    )
+                )
+            )
+        }
 
         val saved = service.create(userId, req)
 
@@ -109,6 +142,40 @@ class AlertRuleServiceImplTest {
         }
 
         assertThat(saved.timeframe).isEqualTo(Timeframe.D1)
+    }
+
+    @Test
+    fun `create - normaliza symbol a mayusculas antes de validar y guardar`() {
+        val userId = UUID.randomUUID()
+        val req = CreateAlertRuleRequest(
+            symbol = "aapl",
+            kind = AlertKind.PRICE_THRESHOLD,
+            params = mapOf("price" to 150.0),
+            timeframe = Timeframe.D1,
+        )
+
+        whenever(repository.saveAndFlush(any<AlertRule>()))
+            .thenAnswer { inv -> inv.getArgument<AlertRule>(0) }
+        runBlocking {
+            whenever(priceDataClient.getQuotes(any())).thenReturn(
+                mapOf(
+                    "AAPL" to QuoteDTO(
+                        symbol = "AAPL",
+                        last = BigDecimal("150.0"),
+                        asOf = Instant.parse("2024-01-01T00:00:00Z"),
+                        prevClose = BigDecimal("149.5"),
+                    )
+                )
+            )
+        }
+
+        val saved = service.create(userId, req)
+
+        argumentCaptor<AlertRule>().apply {
+            verify(repository).saveAndFlush(capture())
+            assertThat(firstValue.symbol).isEqualTo("AAPL")
+        }
+        assertThat(saved.symbol).isEqualTo("AAPL")
     }
 
     @Test
@@ -149,6 +216,99 @@ class AlertRuleServiceImplTest {
         assertThat(existing.status).isEqualTo(RuleStatus.PAUSED)
         assertThat(existing.debounceTime).isEqualTo(Duration.ofSeconds(90))
         assertThat(updated).isSameAs(existing)
+    }
+
+    @Test
+    fun `create - rechaza con 422 cuando no hay datos de precio para el simbolo`() {
+        val userId = UUID.randomUUID()
+        val req = CreateAlertRuleRequest(
+            symbol = "FAKE123",
+            kind = AlertKind.PRICE_THRESHOLD,
+            params = mapOf("price" to 10.0),
+            timeframe = Timeframe.D1,
+        )
+        runBlocking {
+            whenever(priceDataClient.getQuotes(any())).thenReturn(emptyMap())
+        }
+
+        val ex = assertThrows(SymbolPriceUnavailableException::class.java) {
+            service.create(userId, req)
+        }
+
+        assertThat(ex.message).contains("FAKE123")
+        verify(repository, never()).saveAndFlush(any())
+    }
+
+    @Test
+    fun `create - rechaza cuando quote viene sin datos reales y last es cero`() {
+        val userId = UUID.randomUUID()
+        val req = CreateAlertRuleRequest(
+            symbol = "YPF",
+            kind = AlertKind.PRICE_THRESHOLD,
+            params = mapOf("price" to 10.0),
+            timeframe = Timeframe.D1,
+        )
+        runBlocking {
+            whenever(priceDataClient.getQuotes(any())).thenReturn(
+                mapOf(
+                    "YPF" to QuoteDTO(
+                        symbol = "YPF",
+                        last = BigDecimal.ZERO,
+                        asOf = Instant.parse("2024-01-01T00:00:00Z"),
+                        prevClose = null,
+                    )
+                )
+            )
+        }
+
+        val ex = assertThrows(SymbolPriceUnavailableException::class.java) {
+            service.create(userId, req)
+        }
+
+        assertThat(ex.message).contains("YPF")
+        verify(repository, never()).saveAndFlush(any())
+    }
+
+    @Test
+    fun `create - fail open cuando falla price fetcher`() {
+        val userId = UUID.randomUUID()
+        val req = CreateAlertRuleRequest(
+            symbol = "AAPL",
+            kind = AlertKind.PRICE_THRESHOLD,
+            params = mapOf("price" to 120.0),
+            timeframe = Timeframe.D1,
+        )
+
+        runBlocking {
+            whenever(priceDataClient.getQuotes(any())).thenThrow(RuntimeException("timeout"))
+        }
+        whenever(repository.saveAndFlush(any<AlertRule>()))
+            .thenAnswer { inv -> inv.getArgument<AlertRule>(0) }
+
+        val saved = service.create(userId, req)
+
+        assertThat(saved.symbol).isEqualTo("AAPL")
+        verify(repository).saveAndFlush(any<AlertRule>())
+    }
+
+    @Test
+    fun `delete - elimina fisicamente la alerta cuando pertenece al usuario`() {
+        val userId = UUID.randomUUID()
+        val id = UUID.randomUUID()
+        val rule = AlertRule(
+            id = id,
+            userId = userId,
+            symbol = "AAPL",
+            kind = AlertKind.PRICE_THRESHOLD,
+            params = mapOf("price" to 100.0),
+            timeframe = Timeframe.D1,
+            status = RuleStatus.ACTIVE,
+        )
+        whenever(repository.findById(id)).thenReturn(Optional.of(rule))
+
+        service.delete(userId, id)
+
+        verify(repository).delete(rule)
     }
 
     @Test

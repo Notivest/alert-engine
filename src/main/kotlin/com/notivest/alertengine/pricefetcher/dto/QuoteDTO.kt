@@ -6,7 +6,7 @@ import java.time.Instant
 
 data class QuoteDTO(
     val symbol: String,
-    val last: BigDecimal,
+    val last: BigDecimal?,
     val asOf: Instant,
     val open: BigDecimal? = null,
     val high: BigDecimal? = null,

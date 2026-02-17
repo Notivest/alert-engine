@@ -5,6 +5,7 @@ import com.notivest.alertengine.controllers.AlertRuleController
 import com.notivest.alertengine.controllers.dto.alertrule.request.CreateAlertRuleRequest
 import com.notivest.alertengine.controllers.dto.alertrule.request.GetAlertQuery
 import com.notivest.alertengine.controllers.dto.alertrule.request.UpdateAlertRuleRequest
+import com.notivest.alertengine.exception.SymbolPriceUnavailableException
 import com.notivest.alertengine.models.AlertRule
 import com.notivest.alertengine.models.enums.AlertKind
 import com.notivest.alertengine.models.enums.RuleStatus
@@ -14,6 +15,7 @@ import com.notivest.alertengine.service.interfaces.AlertRuleService
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
 import org.mockito.kotlin.eq
+import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest
@@ -113,6 +115,42 @@ class AlertRuleControllerTest {
     }
 
     @Test
+    fun `POST - acepta symbol en minusculas sin fallar bean validation`() {
+        whenever(userIdResolver.requireUserId(any())).thenReturn(userId)
+
+        val req = CreateAlertRuleRequest(
+            symbol = "aapl",
+            kind = AlertKind.PRICE_THRESHOLD,
+            params = mapOf("price" to 100.0),
+            timeframe = Timeframe.D1,
+            status = null,
+            debounceSeconds = 15
+        )
+
+        val created = AlertRule(
+            id = UUID.randomUUID(),
+            userId = userId,
+            symbol = "AAPL",
+            kind = req.kind,
+            params = req.params,
+            timeframe = Timeframe.D1,
+            status = RuleStatus.ACTIVE
+        )
+
+        whenever(service.create(eq(userId), eq(req))).thenReturn(created)
+
+        mvc.post("/alerts") {
+            contentType = MediaType.APPLICATION_JSON
+            content = mapper.writeValueAsString(req)
+            with(jwt())
+        }
+            .andExpect {
+                status { isCreated() }
+                jsonPath("$.symbol") { value("AAPL") }
+            }
+    }
+
+    @Test
     fun `PATCH - update parcial`() {
         whenever(userIdResolver.requireUserId(any())).thenReturn(userId)
 
@@ -146,7 +184,35 @@ class AlertRuleControllerTest {
     }
 
     @Test
-    fun `DELETE - borrado lógico devuelve 204`() {
+    fun `POST - devuelve 422 cuando el simbolo no tiene datos de precio`() {
+        whenever(userIdResolver.requireUserId(any())).thenReturn(userId)
+
+        val req = CreateAlertRuleRequest(
+            symbol = "FAKE123",
+            kind = AlertKind.PRICE_THRESHOLD,
+            params = mapOf("price" to 100.0),
+            timeframe = Timeframe.D1,
+        )
+
+        whenever(service.create(eq(userId), eq(req))).thenThrow(
+            SymbolPriceUnavailableException(
+                "El símbolo FAKE123 no tiene datos de precio disponibles. No se puede crear una alerta sin datos de mercado."
+            )
+        )
+
+        mvc.post("/alerts") {
+            contentType = MediaType.APPLICATION_JSON
+            content = mapper.writeValueAsString(req)
+            with(jwt())
+        }
+            .andExpect {
+                status { isUnprocessableEntity() }
+                jsonPath("$.message") { value("El símbolo FAKE123 no tiene datos de precio disponibles. No se puede crear una alerta sin datos de mercado.") }
+            }
+    }
+
+    @Test
+    fun `DELETE - borrado fisico devuelve 204`() {
         whenever(userIdResolver.requireUserId(any())).thenReturn(userId)
         val id = UUID.randomUUID()
 
@@ -155,6 +221,8 @@ class AlertRuleControllerTest {
         }.andExpect {
             status { isNoContent() }
         }
+
+        verify(service).delete(eq(userId), eq(id))
     }
 
     @Test

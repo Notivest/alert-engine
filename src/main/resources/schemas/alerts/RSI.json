@@ -10,7 +10,7 @@
     "period": {
       "type": "integer",
       "minimum": 1,
-      "maximum": 1000,
+      "maximum": 200,
       "default": 14,
       "description": "Number of bars used to compute the RSI."
     },
@@ -24,11 +24,6 @@
       "type": "string",
       "enum": ["ABOVE", "BELOW", "CROSSING_UP", "CROSSING_DOWN"],
       "description": "Condition applied to the RSI relative to the threshold."
-    },
-    "timeframe": {
-      "type": "string",
-      "enum": ["M1", "M5", "M15", "M30", "H1", "H4", "D1", "W1"],
-      "description": "Optional timeframe override for the calculation."
     }
   },
   "examples": [

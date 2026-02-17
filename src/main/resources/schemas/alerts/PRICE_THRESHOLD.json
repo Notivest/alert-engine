@@ -15,6 +15,7 @@
     "value": {
       "type": "number",
       "exclusiveMinimum": 0,
+      "maximum": 1000000,
       "description": "Absolute price threshold."
     }
   },

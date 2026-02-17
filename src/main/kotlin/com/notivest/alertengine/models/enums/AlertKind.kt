@@ -8,6 +8,9 @@ enum class AlertKind {
     // params: { "operator": "GTE|LTE|GT|LT", "pct": number, "lookbackBars": int }
     PCT_CHANGE,
 
+    // params: { "threshold": number, "lookback": int }
+    DRAWDOWN,
+
     // params: { "fast": int, "slow": int, "direction": "UP|DOWN" }
     MA_CROSS,
 

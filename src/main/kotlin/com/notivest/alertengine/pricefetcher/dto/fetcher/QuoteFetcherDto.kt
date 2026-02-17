@@ -6,7 +6,7 @@ import java.time.Instant
 
 data class QuoteFetcherDto(
     val symbol: String,
-    val last: BigDecimal,
+    val last: BigDecimal?,
     val ts: Instant,
     val open: BigDecimal?,
     val high: BigDecimal?,

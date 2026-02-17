@@ -6,7 +6,7 @@ import org.springframework.test.context.ActiveProfiles
 
 @SpringBootTest
 @ActiveProfiles("test")
-class AlertEngineApplicationTests {
+class AlertEngineApplicationTests : BaseIntegrationTest() {
 
 	@Test
 	fun contextLoads() {

@@ -14,6 +14,7 @@ import com.notivest.alertengine.ruleEvaluators.evaluators.priceThreshold.Operato
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.within
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import java.time.Instant
 import java.util.UUID
 
@@ -152,5 +153,50 @@ class PctChangeEvaluatorTest {
         assertThat(payload.get("actualPct").isNull).isTrue()
         assertThat(payload.get("fromTs").asText()).isEqualTo(now.minusSeconds(300).toString())
         assertThat(payload.get("basis").asText()).isEqualTo("HL2")
+    }
+
+    @Test
+    fun `supports latest realtime candle for non close basis`() {
+        val now = Instant.parse("2024-03-01T05:00:00Z")
+        val closedBar = Candle(
+            now.minusSeconds(300),
+            100.0,
+            101.0,
+            99.0,
+            100.0,
+        )
+        val realtimeBar = Candle(
+            now,
+            101.0,
+            106.0,
+            98.0,
+            102.0,
+        )
+        val params = PctChangeParams(
+            operator = Operator.GTE,
+            pct = 1.5,
+            lookbackBars = 1,
+            basis = PctChangeBasis.HLC3,
+        )
+
+        val result = evaluator.evaluate(context(now), baseRule, prices(closedBar, realtimeBar), params)
+
+        assertThat(result.triggered).isTrue()
+        assertThat(result.reason).isEqualTo("PCT_CHANGE +2.00% GTE +1.50%")
+        assertThat(result.payload!!.get("actualPct").asDouble()).isCloseTo(2.0, within(1e-6))
+        assertThat(result.payload!!.get("toTs").asText()).isEqualTo(now.toString())
+    }
+
+    @Test
+    fun `rejects params when lookbackBars exceeds maximum`() {
+        val ex = assertThrows<IllegalArgumentException> {
+            PctChangeParams(
+                operator = Operator.GTE,
+                pct = 5.0,
+                lookbackBars = 300,
+            )
+        }
+
+        assertThat(ex.message).contains("lookbackBars must be <= 250")
     }
 }

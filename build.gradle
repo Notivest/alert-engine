@@ -4,6 +4,7 @@ plugins {
     id 'org.jetbrains.kotlin.plugin.jpa' version '1.9.25'
     id 'org.springframework.boot' version '3.4.6'
     id 'io.spring.dependency-management' version '1.1.7'
+    id 'jacoco'
     // opcional (solo si querés metadata para @ConfigurationProperties):
     // id 'org.jetbrains.kotlin.kapt' version '1.9.25'
 }
@@ -104,5 +105,31 @@ kotlin {
 test {
     useJUnitPlatform(){
         excludeTags 'integration'
+    }
+    finalizedBy jacocoTestReport
+}
+
+jacoco {
+    toolVersion = '0.8.12'
+}
+
+jacocoTestReport {
+    dependsOn test
+    reports {
+        xml.required = true
+        html.required = true
+    }
+}
+
+jacocoTestCoverageVerification {
+    dependsOn test
+    violationRules {
+        rule {
+            limit {
+                counter = 'LINE'
+                value = 'COVEREDRATIO'
+                minimum = 0.70
+            }
+        }
     }
 }

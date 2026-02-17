@@ -19,6 +19,7 @@
     "lookbackBars": {
       "type": "integer",
       "minimum": 1,
+      "maximum": 250,
       "description": "Number of completed bars to look back from the latest bar."
     },
     "basis": {

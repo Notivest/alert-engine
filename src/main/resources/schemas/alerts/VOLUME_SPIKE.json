@@ -15,12 +15,14 @@
     "lookback": {
       "type": "integer",
       "minimum": 2,
+      "maximum": 250,
       "default": 20,
       "description": "Number of previous bars considered as history."
     },
     "multiplier": {
       "type": "number",
       "exclusiveMinimum": 0,
+      "maximum": 100,
       "default": 2.0,
       "description": "For ABOVE_MA: trigger when volume is multiplier times higher than the simple average."
     },

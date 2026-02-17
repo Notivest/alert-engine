@@ -12,6 +12,7 @@ import com.notivest.alertengine.ruleEvaluators.evaluators.macross.MaCrossEvaluat
 import com.notivest.alertengine.ruleEvaluators.evaluators.macross.MaCrossParams
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import java.time.Instant
 import java.util.Locale
 import java.util.UUID
@@ -106,5 +107,23 @@ class MaCrossEvaluatorTest {
         assertThat(result.triggered).isFalse()
         assertThat(result.payload!!.get("fastMa").isNull).isTrue()
         assertThat(result.payload!!.get("slowMa").isNull).isTrue()
+    }
+
+    @Test
+    fun `rejects params when fast exceeds maximum`() {
+        val ex = assertThrows<IllegalArgumentException> {
+            MaCrossParams(fast = 201, slow = 202, direction = MaCrossDirection.UP)
+        }
+
+        assertThat(ex.message).contains("fast must be <= 200")
+    }
+
+    @Test
+    fun `rejects params when fast is greater than slow`() {
+        val ex = assertThrows<IllegalArgumentException> {
+            MaCrossParams(fast = 30, slow = 20, direction = MaCrossDirection.UP)
+        }
+
+        assertThat(ex.message).contains("slow must be greater than fast")
     }
 }

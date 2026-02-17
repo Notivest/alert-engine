@@ -103,8 +103,8 @@ class PriceDataClientWebTest {
         val res = client.getQuotes(listOf("AAPL", "MSFT"))
 
         assertThat(res).hasSize(2)
-        assertThat(res["AAPL"]!!.last.toPlainString()).isEqualTo("100.0")
-        assertThat(res["MSFT"]!!.last.toPlainString()).isEqualTo("200.0")
+        assertThat(res["AAPL"]!!.last!!.toPlainString()).isEqualTo("100.0")
+        assertThat(res["MSFT"]!!.last!!.toPlainString()).isEqualTo("200.0")
 
         val req = server.takeRequest(1, TimeUnit.SECONDS)!!
         assertThat(req.path).startsWith("/quotes")
@@ -129,7 +129,7 @@ class PriceDataClientWebTest {
         val res = client.getQuotes(listOf("AAPL", "FOOBAR"))
 
         assertThat(res).hasSize(1)
-        assertThat(res["AAPL"]!!.last.toPlainString()).isEqualTo("101.0")
+        assertThat(res["AAPL"]!!.last!!.toPlainString()).isEqualTo("101.0")
 
         val first = server.takeRequest() // batch
         val second = server.takeRequest() // AAPL

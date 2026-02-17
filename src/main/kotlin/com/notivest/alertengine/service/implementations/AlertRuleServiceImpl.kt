@@ -6,6 +6,7 @@ import com.notivest.alertengine.controllers.dto.alertrule.request.UpdateAlertRul
 import com.notivest.alertengine.exception.ForbiddenOperationException
 import com.notivest.alertengine.exception.InvalidParamsException
 import com.notivest.alertengine.exception.ResourceNotFoundException
+import com.notivest.alertengine.exception.SymbolPriceUnavailableException
 import com.notivest.alertengine.models.AlertRule
 import com.notivest.alertengine.models.enums.AlertKind
 import com.notivest.alertengine.models.enums.RuleStatus
@@ -15,25 +16,27 @@ import com.notivest.alertengine.pricefetcher.client.PriceDataClient
 import com.notivest.alertengine.pricefetcher.listener.WatchlistAdd
 import com.notivest.alertengine.repositories.AlertRuleRepository
 import com.notivest.alertengine.repositories.spec.AlertRuleSpecs
-import com.notivest.alertengine.scheduler.EventSink
 import com.notivest.alertengine.service.interfaces.AlertRuleService
 import com.notivest.alertengine.validation.AlertParamsValidator
+import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.domain.Specification
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
+import java.math.BigDecimal
 import java.time.Duration
 import java.util.UUID
-import org.springframework.transaction.annotation.Transactional
 
 
 @Service
 class AlertRuleServiceImpl(
     private val repository: AlertRuleRepository,
     private val validator: AlertParamsValidator,
-    private val eventPublisher: ApplicationEventPublisher
+    private val eventPublisher: ApplicationEventPublisher,
+    private val priceDataClient: PriceDataClient,
 ) : AlertRuleService {
 
     private val logger = LoggerFactory.getLogger(AlertRuleServiceImpl::class.java)
@@ -54,7 +57,9 @@ class AlertRuleServiceImpl(
 
     @Transactional
     override fun create(userId: UUID, command: CreateAlertRuleRequest): AlertRule {
+        val normalizedSymbol = command.symbol.trim().uppercase()
         validator.validate(command.kind, command.params)
+        validateSymbolHasPriceData(normalizedSymbol)
         val timeframe = command.timeframe ?: Timeframe.D1
         if (command.timeframe == null && command.kind != AlertKind.PRICE_THRESHOLD) {
             throw InvalidParamsException("Timeframe is required for ${command.kind}")
@@ -62,7 +67,7 @@ class AlertRuleServiceImpl(
 
         val entity = AlertRule(
             userId = userId,
-            symbol = command.symbol,
+            symbol = normalizedSymbol,
             title = normalizeOptional(command.title),
             note = normalizeOptional(command.note),
             singleTrigger = command.singleTrigger ?: false,
@@ -122,6 +127,12 @@ class AlertRuleServiceImpl(
         return findOwnedOrThrow(userId, alertId)
     }
 
+    @Transactional
+    override fun delete(userId: UUID, alertId: UUID) {
+        val rule = findOwnedOrThrow(userId, alertId)
+        repository.delete(rule)
+    }
+
     private fun findOwnedOrThrow(userId: UUID, id: UUID): AlertRule {
         val rule = repository.findById(id).orElseThrow {
             ResourceNotFoundException("Alert rule $id not found")
@@ -134,6 +145,35 @@ class AlertRuleServiceImpl(
 
     private fun normalizeOptional(value: String?): String? =
         value?.trim()?.ifBlank { null }
+
+    private fun validateSymbolHasPriceData(rawSymbol: String) {
+        val symbol = rawSymbol.trim().uppercase()
+        val quotes = try {
+            runBlocking {
+                priceDataClient.getQuotes(listOf(symbol))
+            }
+        } catch (ex: Exception) {
+            logger.warn(
+                "alert-rule-create-price-validation-fail-open symbol={} reason={} message={}",
+                symbol,
+                ex.javaClass.simpleName,
+                ex.message
+            )
+            return
+        }
+
+        val quote = quotes.entries.firstOrNull { it.key.equals(symbol, ignoreCase = true) }?.value
+        // Some providers can emit synthetic 0 values when no real quote is available.
+        val hasPriceData = quote != null && (
+            (quote.last != null && quote.last > BigDecimal.ZERO) ||
+                (quote.prevClose != null && quote.prevClose > BigDecimal.ZERO)
+            )
+        if (!hasPriceData) {
+            throw SymbolPriceUnavailableException(
+                "El símbolo $symbol no tiene datos de precio disponibles. No se puede crear una alerta sin datos de mercado."
+            )
+        }
+    }
 
 
 }

@@ -23,7 +23,12 @@ data class PctChangeParams @JsonCreator constructor(
 ) {
     init {
         require(lookbackBars >= 1) { "lookbackBars must be >= 1" }
+        require(lookbackBars <= MAX_LOOKBACK_BARS) { "lookbackBars must be <= $MAX_LOOKBACK_BARS" }
     }
 
     fun resolvedBasis(): PctChangeBasis = basis ?: PctChangeBasis.CLOSE
+
+    companion object {
+        private const val MAX_LOOKBACK_BARS = 250
+    }
 }

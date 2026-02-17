@@ -3,6 +3,7 @@ package com.notivest.alertengine.web
 import com.notivest.alertengine.exception.ForbiddenOperationException
 import com.notivest.alertengine.exception.InvalidParamsException
 import com.notivest.alertengine.exception.ResourceNotFoundException
+import com.notivest.alertengine.exception.SymbolPriceUnavailableException
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.validation.ConstraintViolationException
 import org.slf4j.MDC
@@ -55,6 +56,11 @@ class ApiExceptionHandler {
     @ExceptionHandler(InvalidParamsException::class)
     fun handleInvalidParams(ex: InvalidParamsException, req: HttpServletRequest) =
         status(HttpStatus.BAD_REQUEST, "invalid_request", ex.message, req, exception = ex)
+
+    // 422 (símbolo sin datos de mercado disponibles)
+    @ExceptionHandler(SymbolPriceUnavailableException::class)
+    fun handleSymbolPriceUnavailable(ex: SymbolPriceUnavailableException, req: HttpServletRequest) =
+        status(HttpStatus.UNPROCESSABLE_ENTITY, "symbol_price_unavailable", ex.message, req, exception = ex)
 
     // 400 (Bean Validation @Valid)
     @ExceptionHandler(MethodArgumentNotValidException::class)

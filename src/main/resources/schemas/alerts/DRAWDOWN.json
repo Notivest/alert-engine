@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://notivest.io/schemas/drawdown.json",
+  "title": "DRAWDOWN",
+  "description": "Triggers when the current price has dropped by a configured percentage from the highest high across the last N bars.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["threshold", "lookback"],
+  "properties": {
+    "threshold": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "maximum": 100,
+      "description": "Drawdown percentage that triggers the alert (for example 10 means a 10% drop from the recent maximum)."
+    },
+    "lookback": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 250,
+      "description": "Number of most recent bars used to search the maximum high."
+    }
+  },
+  "examples": [
+    { "threshold": 10, "lookback": 30 },
+    { "threshold": 6.5, "lookback": 20 }
+  ]
+}

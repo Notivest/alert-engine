@@ -64,11 +64,13 @@ class AlertKindCatalog(
         return AlertKindDefinition(
             kind = kind,
             description = description,
-            timeframes = allTimeframes,
+            timeframes = allowedTimeframesFor(),
             params = params,
             examples = examples,
         )
     }
+
+    private fun allowedTimeframesFor(): List<Timeframe> = dailyOnlyTimeframes
 
     private fun toParam(name: String, prop: JsonNode, required: Boolean): AlertKindParam {
         val enumValues = prop.path("enum").takeIf { it.isArray }?.map { it.asText() }
@@ -178,6 +180,6 @@ class AlertKindCatalog(
 
     companion object {
         private val resolver = PathMatchingResourcePatternResolver()
-        private val allTimeframes = Timeframe.values().toList()
+        private val dailyOnlyTimeframes = listOf(Timeframe.D1)
     }
 }

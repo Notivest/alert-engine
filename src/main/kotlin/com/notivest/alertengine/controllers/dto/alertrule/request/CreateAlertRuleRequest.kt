@@ -13,8 +13,8 @@ import jakarta.validation.constraints.Size
 data class CreateAlertRuleRequest (
     @field:NotBlank
     @field:Size(min = 1, max = 20)
-    // ejemplo simple de ticker/símbolo en mayúsculas, ajustá si necesitás otros formatos
-    @field:Pattern(regexp = "[A-Z0-9.:-]+")
+    // Acepta mayúsculas/minúsculas en input; el service normaliza a mayúsculas.
+    @field:Pattern(regexp = "[A-Za-z0-9.:-]+")
     val symbol: String,
 
     @field:Size(max = 120)

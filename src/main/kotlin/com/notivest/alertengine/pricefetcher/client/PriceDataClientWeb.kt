@@ -247,6 +247,7 @@ class PriceDataClientWeb(
             Timeframe.M15 -> "T15M"
             Timeframe.H1  -> "T1H"
             Timeframe.D1  -> "T1D"
+            else -> throw IllegalArgumentException("Timeframe $tf is not supported by price-fetcher")
         }
     }
 }

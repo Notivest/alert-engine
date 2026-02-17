@@ -17,6 +17,11 @@ interface AlertEventRepository : JpaRepository<AlertEvent, UUID> {
     fun findAllByRuleUserId(userId: UUID, pageable: Pageable): Page<AlertEvent>
     fun findByRuleIdAndFingerprint(ruleId: UUID, fingerprint: String): AlertEvent?
     fun countByRuleId(ruleId: UUID): Long
+    fun countByRuleUserId(userId: UUID): Long
+
+    @Modifying
+    @Query("delete from AlertEvent e where e.rule.userId = :userId")
+    fun deleteByRuleUserId(@Param("userId") userId: UUID): Int
 
     @Modifying
     @Transactional

@@ -11,6 +11,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
+import java.time.Instant
+import java.time.ZoneOffset
 import java.util.UUID
 
 @Component
@@ -30,7 +32,8 @@ class GroupProcessor(
         cycleId: UUID,
         symbol: String,
         timeframe: Timeframe,
-    ): DefaultPriceSeries? = loadSeries(cycleId, symbol, timeframe, PriceDataSource.HISTORICAL)
+        evaluatedAt: Instant,
+    ): DefaultPriceSeries? = loadSeries(cycleId, symbol, timeframe, PriceDataSource.HISTORICAL, evaluatedAt)
 
     suspend fun loadQuoteSeries(
         cycleId: UUID,
@@ -43,11 +46,12 @@ class GroupProcessor(
         symbol: String,
         timeframe: Timeframe,
         source: PriceDataSource,
+        evaluatedAt: Instant? = null,
     ): DefaultPriceSeries? {
         val timerSample = Timer.start(meterRegistry)
         return try {
             when (source) {
-                PriceDataSource.HISTORICAL -> loadFromHistorical(cycleId, symbol, timeframe)
+                PriceDataSource.HISTORICAL -> loadFromHistorical(cycleId, symbol, timeframe, evaluatedAt ?: Instant.now())
                 PriceDataSource.QUOTES -> loadFromQuotes(cycleId, symbol, timeframe)
             }
         } catch (ex: Exception) {
@@ -95,7 +99,18 @@ class GroupProcessor(
             return null
         }
 
-        val lastPrice = quote.last.toDouble()
+        val referencePrice = quote.last ?: quote.prevClose
+        if (referencePrice == null) {
+            logger.warn(
+                "alert-eval-group-empty-quote-price cycleId={} symbol={} message=\"quote has no last/prevClose\"",
+                cycleId,
+                symbol,
+            )
+            errorMetrics.increment("quote_missing")
+            return null
+        }
+
+        val lastPrice = referencePrice.toDouble()
         val candle = Candle(
             openTime = quote.asOf,
             open = quote.open?.toDouble() ?: lastPrice,
@@ -104,13 +119,20 @@ class GroupProcessor(
             close = lastPrice,
         )
 
-        return DefaultPriceSeries(symbol = symbol, timeframe = timeframe, candles = listOf(candle))
+        return DefaultPriceSeries(
+            symbol = symbol,
+            timeframe = timeframe,
+            candles = listOf(candle),
+            currentPrice = lastPrice,
+            currentPriceAsOf = quote.asOf,
+        )
     }
 
     private suspend fun loadFromHistorical(
         cycleId: UUID,
         symbol: String,
         timeframe: Timeframe,
+        evaluatedAt: Instant,
     ): DefaultPriceSeries? {
         val priceTimeframe = SUPPORTED_TIMEFRAMES[timeframe]
         if (priceTimeframe == null) {
@@ -135,10 +157,11 @@ class GroupProcessor(
         val ordered = candles
             .map(CandleMapper::fromDto)
             .sortedBy { it.openTime }
+        val closedOnly = filterClosedBars(ordered, timeframe, evaluatedAt)
 
-        if (ordered.isEmpty()) {
+        if (closedOnly.isEmpty()) {
             logger.warn(
-                "alert-eval-group-empty cycleId={} symbol={} timeframe={} message=\"no candles returned\"",
+                "alert-eval-group-empty cycleId={} symbol={} timeframe={} message=\"no closed candles returned\"",
                 cycleId,
                 symbol,
                 timeframe,
@@ -147,7 +170,20 @@ class GroupProcessor(
             return null
         }
 
-        return DefaultPriceSeries(symbol = symbol, timeframe = timeframe, candles = ordered)
+        return DefaultPriceSeries(symbol = symbol, timeframe = timeframe, candles = closedOnly)
+    }
+
+    private fun filterClosedBars(
+        candles: List<Candle>,
+        timeframe: Timeframe,
+        evaluatedAt: Instant,
+    ): List<Candle> {
+        if (timeframe != Timeframe.D1) {
+            return candles
+        }
+
+        val utcDayStart = evaluatedAt.atOffset(ZoneOffset.UTC).toLocalDate().atStartOfDay().toInstant(ZoneOffset.UTC)
+        return candles.filter { it.openTime < utcDayStart }
     }
 
     enum class PriceDataSource {

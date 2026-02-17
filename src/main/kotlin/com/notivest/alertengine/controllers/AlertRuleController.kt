@@ -5,7 +5,6 @@ import com.notivest.alertengine.controllers.dto.alertrule.request.GetAlertQuery
 import com.notivest.alertengine.controllers.dto.alertrule.request.UpdateAlertRuleRequest
 import com.notivest.alertengine.controllers.dto.alertrule.response.AlertRuleResponse
 import com.notivest.alertengine.controllers.dto.alertrule.toResponse
-import com.notivest.alertengine.models.enums.RuleStatus
 import com.notivest.alertengine.security.JwtUserIdResolver
 import com.notivest.alertengine.service.interfaces.AlertRuleService
 import jakarta.validation.Valid
@@ -82,6 +81,6 @@ class AlertRuleController(
         @AuthenticationPrincipal auth: Jwt
     ) {
         val userId = userIdResolver.requireUserId(auth)
-        alertRuleService.setStatus(userId, id, RuleStatus.DISABLED)
+        alertRuleService.delete(userId, id)
     }
 }
