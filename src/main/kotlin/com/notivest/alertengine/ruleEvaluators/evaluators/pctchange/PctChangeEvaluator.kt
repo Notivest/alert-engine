@@ -55,13 +55,14 @@ class PctChangeEvaluator : RuleEvaluator<PctChangeParams> {
             return noTrigger(rule, params, latest.openTime, past.openTime)
         }
 
-        val triggered = compare(params.operator, pctChange, params.pct)
+        val thresholdPct = normalizeThreshold(params.operator, params.pct)
+        val triggered = compare(params.operator, pctChange, thresholdPct)
         val severity = SeverityAlert.INFO
         val payload = JsonNodeFactory.instance.objectNode().apply {
             put("symbol", rule.symbol)
             put("timeframe", rule.timeframe.name)
             put("operator", params.operator.name)
-            put("thresholdPct", params.pct)
+            put("thresholdPct", thresholdPct)
             put("actualPct", pctChange)
             put("lookbackBars", params.lookbackBars)
             put("basis", basis.name)
@@ -75,7 +76,7 @@ class PctChangeEvaluator : RuleEvaluator<PctChangeParams> {
             symbol = rule.symbol,
             timeframe = rule.timeframe,
             operator = params.operator,
-            threshold = params.pct,
+            threshold = thresholdPct,
             lookback = params.lookbackBars,
             basis = basis,
             fromTs = past.openTime,
@@ -84,7 +85,7 @@ class PctChangeEvaluator : RuleEvaluator<PctChangeParams> {
 
         val reason = if (triggered) {
             val actualFormatted = formatPct(pctChange)
-            val thresholdFormatted = formatPct(params.pct)
+            val thresholdFormatted = formatPct(thresholdPct)
             "PCT_CHANGE $actualFormatted ${params.operator.name} $thresholdFormatted"
         } else {
             null
@@ -106,11 +107,12 @@ class PctChangeEvaluator : RuleEvaluator<PctChangeParams> {
         pastTs: Instant?,
     ): RuleEvaluationResult {
         val basis = params.resolvedBasis()
+        val thresholdPct = normalizeThreshold(params.operator, params.pct)
         val payload = JsonNodeFactory.instance.objectNode().apply {
             put("symbol", rule.symbol)
             put("timeframe", rule.timeframe.name)
             put("operator", params.operator.name)
-            put("thresholdPct", params.pct)
+            put("thresholdPct", thresholdPct)
             putNull("actualPct")
             put("lookbackBars", params.lookbackBars)
             put("basis", basis.name)
@@ -123,7 +125,7 @@ class PctChangeEvaluator : RuleEvaluator<PctChangeParams> {
             symbol = rule.symbol,
             timeframe = rule.timeframe,
             operator = params.operator,
-            threshold = params.pct,
+            threshold = thresholdPct,
             lookback = params.lookbackBars,
             basis = basis,
             fromTs = pastTs,
@@ -143,6 +145,17 @@ class PctChangeEvaluator : RuleEvaluator<PctChangeParams> {
         Operator.GT -> actual > threshold
         Operator.LTE -> actual <= threshold
         Operator.LT -> actual < threshold
+    }
+
+    private fun normalizeThreshold(
+        operator: Operator,
+        threshold: Double,
+    ): Double {
+        val magnitude = kotlin.math.abs(threshold)
+        return when (operator) {
+            Operator.LTE, Operator.LT -> -magnitude
+            Operator.GTE, Operator.GT -> magnitude
+        }
     }
 
     private fun formatPct(value: Double): String = String.format(java.util.Locale.US, "%+.2f%%", value)

@@ -113,6 +113,26 @@ class PctChangeEvaluatorTest {
     }
 
     @Test
+    fun `treats positive threshold as downside threshold for LTE`() {
+        val now = Instant.parse("2024-03-01T02:30:00Z")
+        val candles = arrayOf(
+            Candle(now.minusSeconds(300), 100.0, 101.0, 99.0, 95.0),
+            Candle(now, 95.0, 96.0, 90.0, 89.3),
+        )
+        val params = PctChangeParams(
+            operator = Operator.LTE,
+            pct = 5.0,
+            lookbackBars = 1,
+        )
+
+        val result = evaluator.evaluate(context(now), baseRule, prices(*candles), params)
+
+        assertThat(result.triggered).isTrue()
+        assertThat(result.reason).isEqualTo("PCT_CHANGE -6.00% LTE -5.00%")
+        assertThat(result.payload!!.get("thresholdPct").asDouble()).isEqualTo(-5.0)
+    }
+
+    @Test
     fun `returns no trigger when insufficient candles`() {
         val now = Instant.parse("2024-03-01T03:00:00Z")
         val candles = arrayOf(
