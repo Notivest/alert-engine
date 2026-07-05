@@ -33,6 +33,7 @@ class ApiExceptionHandler {
         val method: String?,
         val pathPattern: String?,
         val requestId: String?,
+        val correlationId: String?,
         val traceId: String?,           // si usás micrometer tracing, se pobla en MDC
         val fields: Map<String, String>? = null,
         val violations: List<Violation>? = null,
@@ -162,6 +163,7 @@ class ApiExceptionHandler {
     ): ErrorBody {
         val pathPattern = req.getAttribute(HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE) as? String
         val requestId = req.getHeader("X-Request-ID")?.takeIf { it.isNotBlank() }
+        val correlationId = MDC.get("correlationId") ?: req.getHeader("X-Correlation-Id")
         val traceId = MDC.get("traceId") ?: req.getHeader("X-B3-TraceId")
 
         return ErrorBody(
@@ -173,6 +175,7 @@ class ApiExceptionHandler {
             method = req.method,
             pathPattern = pathPattern,
             requestId = requestId,
+            correlationId = correlationId,
             traceId = traceId,
             fields = fields,
             violations = violations,

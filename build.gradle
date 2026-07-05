@@ -50,6 +50,7 @@ dependencies {
 
     // Observabilidad
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'io.micrometer:micrometer-registry-new-relic'
 
     // OpenAPI/Swagger
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.2'

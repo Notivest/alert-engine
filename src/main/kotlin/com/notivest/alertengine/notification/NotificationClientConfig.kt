@@ -1,5 +1,6 @@
 package com.notivest.alertengine.notification
 
+import com.notivest.alertengine.observability.CorrelationContext
 import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -26,6 +27,7 @@ class NotificationClientConfig {
             .baseUrl(baseUrl.removeSuffix("/"))
             .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
             .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .filter(CorrelationContext.propagationFilter())
             .build()
     }
 }

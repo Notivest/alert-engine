@@ -1,5 +1,6 @@
 package com.notivest.alertengine.scheduler
 
+import com.notivest.alertengine.observability.CorrelationContext
 import io.micrometer.core.instrument.MeterRegistry
 import io.micrometer.core.instrument.Timer
 import kotlinx.coroutines.runBlocking
@@ -49,6 +50,7 @@ class AlertEvaluationScheduler(
         }
 
         val cycleId = UUID.randomUUID()
+        CorrelationContext.setCorrelationId(cycleId.toString())
         val startedAt = Instant.now(clock)
         val timerSample = Timer.start(meterRegistry)
         logger.info("alert-eval-cycle-start cycleId={} startedAt={} cadenceSeconds={}", cycleId, startedAt, properties.cadence.seconds)
@@ -64,6 +66,7 @@ class AlertEvaluationScheduler(
         } finally {
             timerSample.stop(cycleTimer)
             running.set(false)
+            CorrelationContext.clear()
         }
     }
 

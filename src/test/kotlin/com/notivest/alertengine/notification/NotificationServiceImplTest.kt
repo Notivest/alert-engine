@@ -7,6 +7,7 @@ import com.notivest.alertengine.models.enums.AlertKind
 import com.notivest.alertengine.models.enums.RuleStatus
 import com.notivest.alertengine.models.enums.SeverityAlert
 import com.notivest.alertengine.models.enums.Timeframe
+import com.notivest.alertengine.observability.CorrelationContext
 import com.notivest.alertengine.pricefetcher.tokenprovider.TokenPolicy
 import com.notivest.alertengine.repositories.AlertRuleRepository
 import io.mockk.mockk
@@ -42,12 +43,14 @@ class NotificationServiceImplTest {
         )
         client = WebClient.builder()
             .baseUrl(baseUrl)
+            .filter(CorrelationContext.propagationFilter())
             .build()
         tokenPolicy = mockk()
     }
 
     @AfterEach
     fun tearDown() {
+        CorrelationContext.clear()
         server.shutdown()
     }
 
@@ -59,8 +62,10 @@ class NotificationServiceImplTest {
         val event = buildEvent(rule)
         val jobId = UUID.randomUUID()
         val token = "token-123"
+        val correlationId = "corr-alert-engine"
 
         coEvery { tokenPolicy.resolveToken() } returns token
+        CorrelationContext.setCorrelationId(correlationId)
 
         server.enqueue(
             MockResponse()
@@ -83,6 +88,7 @@ class NotificationServiceImplTest {
         assertThat(recorded.method).isEqualTo("POST")
         assertThat(recorded.path).isEqualTo("/api/v1/notify/alert")
         assertThat(recorded.getHeader("Authorization")).isEqualTo("Bearer $token")
+        assertThat(recorded.getHeader(CorrelationContext.HEADER_CORRELATION_ID)).isEqualTo(correlationId)
 
         val payload = mapper.readTree(recorded.body.readUtf8())
         assertThat(payload["userId"].asText()).isEqualTo(rule.userId.toString())

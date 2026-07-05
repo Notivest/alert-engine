@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.notivest.alertengine.observability.CorrelationContext
 import com.notivest.alertengine.pricefetcher.client.PriceDataClient
 import com.notivest.alertengine.pricefetcher.client.PriceDataClientWeb
 import com.notivest.alertengine.pricefetcher.tokenprovider.TokenPolicy
@@ -48,6 +49,7 @@ class PriceDataClientConfig {
 
     @Bean
     fun priceDataWebClient(
+        builder: WebClient.Builder,
         httpClient: HttpClient,
         props: PriceDataClientProperties,
         mapper: ObjectMapper
@@ -59,13 +61,14 @@ class PriceDataClientConfig {
             }
             .build()
 
-        return WebClient.builder()
+        return builder.clone()
             .baseUrl(props.baseUrl.removeSuffix("/")) // evita // en las URIs
             .clientConnector(ReactorClientHttpConnector(httpClient))
             .exchangeStrategies(exchange)
             .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
             // Propaga Authorization: Bearer del SecurityContext si existe (servlet stack)
             .filter(ServletBearerExchangeFilterFunction())
+            .filter(CorrelationContext.propagationFilter())
             .build()
     }
 

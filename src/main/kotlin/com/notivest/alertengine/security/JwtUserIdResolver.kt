@@ -9,7 +9,7 @@ import java.nio.charset.StandardCharsets
 
 @Component
 class JwtUserIdResolver(
-    @Value("\${JWT_USER_ID_CLAIM:claimId")
+    @Value("\${JWT_USER_ID_CLAIM:claimId}")
     private val userIdClaim: String,
 ) {
     fun requireUserId(jwt: Jwt): UUID =
